@@ -7,8 +7,8 @@
     (java.util.concurrent Future TimeUnit TimeoutException ExecutionException)
     (javax.mail Flags Flags$Flag Folder Message Session Store)
     (java.util Properties))
-  (:require [clojure.java.io :as io])
-  (:use clojure.contrib.logging clojure.test))
+  (:require [clojure.java.io :as io]
+            [clojure.tools.logging :as log]))
 
 (defn try-times*
   "Executes thunk. If an exception is thrown, will retry. At most n retries
@@ -16,7 +16,7 @@
   the call chain."
   [n delay thunk]
   (loop [n n]
-    (debug (str "n:" n))
+    (log/debug (str "n:" n))
     (if-let [result (try
 		      (thunk)
 		      (catch Exception e
@@ -50,9 +50,9 @@
       (doto props
         (.put "mail.smtp.socketFactory.class" 
               "javax.net.ssl.SSLSocketFactory")))
-    (doseq [p props] (info p))
-    (info "--------------")
-    (doseq [p mail] (info p))
+    (doseq [p props] (log/debug p))
+    (log/debug "--------------")
+    (doseq [p mail] (log/debug p))
     (let [authenticator (proxy [javax.mail.Authenticator] [] 
                           (getPasswordAuthentication 
                            []
@@ -83,11 +83,11 @@
 	(try
           (.open folder Folder/READ_WRITE)
           (let [count (.getMessageCount folder)]
-	    (debug (str "count=" count))
+	    (log/debug (str "count=" count))
 	    (doseq [i (range 1 (inc count))]
 	      (let [msg (.getMessage folder i)
 		    subject (str (.getSubject msg))]
-	        (debug (str "Subject: " subject))
+	        (log/debug (str "Subject: " subject))
                 subject)))
 	  (finally
 	   (.close folder true)))))))
@@ -133,12 +133,12 @@
 	(try
           (.open folder Folder/READ_WRITE)
           (let [count (.getMessageCount folder)]
-	    (debug (str "count=" count))
+	    (log/debug (str "count=" count))
 	    (if (> count 0)
 	      (loop [i 1 max count]
 		(let [msg (.getMessage folder i)
 		      subject (peel-reply (str (.getSubject msg)))]
-                  (debug (str "subject-set=" subject-set " subject:" subject))
+                  (log/debug (str "subject-set=" subject-set " subject:" subject))
                   ;; subject-set debe ser un set de posibles subjects!
                   (if (subject-set subject)
 		    (do

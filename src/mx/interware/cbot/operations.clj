@@ -6,9 +6,9 @@
              File FileWriter)
     (java.util.concurrent Future TimeUnit TimeoutException ExecutionException))
   (:require [clojure.java.io :as io]
-            [clojure.contrib.logging :as log]
+            [clojure.tools.logging :as log]
             [mx.interware.cbot.util :as util]
-            [clojure.contrib.sql :as sql]
+            [clojure.java.jdbc :as sql]
             [mx.interware.util.basic :as basic]))
 
 ;; Las funciones siguientes "opr" son las ejecuciones de los estados del robot
@@ -135,7 +135,7 @@
     (sql/with-connection (:db conf)
       (sql/with-query-results res
         [(util/contextualize (:query conf) context)]
-          (reduce #(str %1 %2 "\n") "" res)))))
+          (reduce #(str %1 %2 "\n") "" res))))) 
 
 ;;demo conf {:host "10.1.1.23" :port 22}
 (defn socket-opr

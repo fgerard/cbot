@@ -11,7 +11,7 @@
             [mx.interware.cbot.operations :as opr]
             [mx.interware.cbot.util :as util]
             [mx.interware.util.basic :as basic]
-            [clojure.contrib.logging :as log]))
+            [clojure.tools.logging :as log]))
 
 (declare exec-cbot)
 
@@ -192,7 +192,7 @@
                           (first
                            (filter
                             (fn [par]
-                              (println "par>" par " value>" value)
+                              (log/debug (str "rule (<exit-state> <reg-exp) " par " value:" value))
                               (re-matches (re-pattern (second par)) value))
                             (partition 2 vec-rule))))]
         seleccion
@@ -223,7 +223,8 @@
      #'exec-cbot)))
 
 (defn build-cbot-factory [id inter-state-delay parameters instances states]
-  (let [template (create-cbot-template id (first (keys states)) states inter-state-delay parameters)]
+  (let [template (create-cbot-template
+                  id (first (keys states)) states inter-state-delay parameters)]
     (fn [instance-id]
       (if (nil? instance-id)
         (into [] (keys instances))
@@ -310,7 +311,9 @@
                        retry-count :retry-count
                        retry-delay :retry-delay
                        conf :conf :as conf-map} :conf-map
-                      {connect-vec :connect :as flow} :flow}]
+                       {connect-vec :connect :as flow} :flow}]
+  (log/debug (str "state-name:"  state-name))
+  ;(Thread/sleep 5000)
   (State. state-name (opr-factory opr-name timeout retry-count retry-delay conf) (flow-factory connect-vec)))
 
 (defn do-it []
@@ -321,9 +324,66 @@
          parameters :parameters
          instances :instances
          pre-states :states} app]
-    (let [states (into {} (map (fn [par] [(par 0) (state-factory (par 0) (par 1))]) pre-states))]
+    (let [states (into {} (map (fn [info] [(info :key) (state-factory (info :key) info)]) pre-states))]
       (build-cbot-factory id (Integer/parseInt interstate-delay) parameters instances states))))
 
+(def app-ctrl (ref {}))
+
+;; Este ref tiene los cbot ya creados, si no existen, se crean y se
+;; meten a este ref !!, la llave es :app:instance como str
+(def cbot-ctrl (ref {}))
+
+(defn apps []
+  (store/get-app-names))
+
+(defn create-app-factory [app-key]
+  (let [app (store/get-app app-key)
+        {interstate-delay :interstate-delay
+         parameters :parameters
+         instances :instances
+         pre-states :states} app]
+    (let [states (into {}
+                       (map (fn [info] [(info :key) (state-factory (info :key) info)])
+                            pre-states))]
+      (build-cbot-factory app-key
+                          (Integer/parseInt interstate-delay)
+                          parameters
+                          instances
+                          states))))
+(defn get-app-factory [app-key]
+  (if-let [factory (app-key @app-ctrl)]
+    factory
+    (dosync
+     (let [factory (create-app-factory app-key)]
+       (alter app-ctrl #(assoc % app-key factory))
+       factory))))
+
+(defn get-cbot [app-key inst-key]
+  (dosync
+   (let [k (str app-key inst-key)]
+     (if-let [cbot (@cbot-ctrl k)]
+       cbot
+       (let [factory (get-app-factory app-key)
+             cbot (factory inst-key)]
+         (println ">>> " cbot "  " (class cbot))
+         (alter cbot-ctrl assoc k cbot)
+         cbot)))))
+
+(defmulti apply-cmd (fn [_ _ cmd] cmd))
+
+(defmethod apply-cmd "start" [app-k inst-k cmd]
+  (let [cbot (get-cbot app-k inst-k)]
+    (println cbot " " (class cbot))
+    (cbot-start cbot)))
+
+(defmethod apply-cmd "stop" [app-k inst-k cmd]
+  (let [cbot (get-cbot app-k inst-k)]
+    (cbot-stop cbot)))
+
+(defmethod apply-cmd "status" [app-k inst-k cmd]
+  (println "apply-cmd " cmd " " app-k " " inst-k)
+  (let [cbot (get-cbot app-k inst-k)]
+    @cbot))
 
 (defn -mainx [& args]
   (println "Iniciando el CBOT-P")

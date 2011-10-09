@@ -5,8 +5,7 @@
    (java.io PrintWriter BufferedReader)
    (javax.swing.event ListSelectionListener))
   (:require [clojure.java.io :as io]
-            [clojure.contrib.logging :as log]
-            [clojure.contrib.duck-streams :as d]
+            [clojure.tools.logging :as log]
             [seesaw.core :as ss] 
             [seesaw.mig :as mig]
             [seesaw.event :as evt]

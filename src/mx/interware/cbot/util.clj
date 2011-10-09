@@ -6,7 +6,7 @@
              File FileWriter)
     (java.util.concurrent Future TimeUnit TimeoutException ExecutionException))
   (:require [clojure.java.io :as io]
-            [clojure.contrib.logging :as log]))
+            [clojure.tools.logging :as log]))
 
 (defmacro warn-exception [fnk e & args]
   `(log/warn [~fnk (if-let [cause# (.getCause ~e)] (str (type cause#)) (str (type ~e))) (.getMessage ~e) ~@args]))
