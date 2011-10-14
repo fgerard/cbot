@@ -28,7 +28,11 @@
     (str "sleep-opr:" (System/currentTimeMillis))))
 
 (defn date-time-opr
-  {:doc "Crea una operacion que formatea la fecha/hora actual con un formato especificado"})
+  {:doc "Crea una operacion que formatea la fecha/hora actual con un formato especificado"}
+  [conf]
+  (fn [context]
+    (let [formatter (java.text.SimpleDateFormat. (util/contextualize (:format conf) context))]
+      (.format formatter (java.util.Date.)))))
 
 ;;demo conf {:msg "Saludos"}
 (defn print-msg-opr
@@ -174,7 +178,9 @@
 (defn clojure-opr
   [conf]
   (fn [context]
-    (let [result ((:function conf) context)]
+    (log/debug "Entrando a clojure-opr, " (class (:code conf)) " " (:code conf))
+    (let [func (load-string (:code conf))
+          result (func context)]
       (if (map? result)
         (if (:result result)
             result

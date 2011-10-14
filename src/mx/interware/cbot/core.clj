@@ -11,6 +11,7 @@
             [mx.interware.cbot.operations :as opr]
             [mx.interware.cbot.util :as util]
             [mx.interware.util.basic :as basic]
+            [mx.interware.cbot.ui :as ui]
             [clojure.tools.logging :as log]))
 
 (declare exec-cbot)
@@ -32,6 +33,12 @@
   (is-long-running? [state]
                     (= opr opr/human-opr)))
 
+(defn store-stats [{max-len :max-len info :info :as stats} state now delta]
+  (let [result (conj info {:state (:id state) :when now :delta-micro delta})]
+    (if (> (count result) max-len)
+      (assoc stats :info (into [] (rest result)))
+      (assoc stats :info result))))
+
 (defprotocol CbotP
   "Protocol for a CBOT"
   (exec [cbot])
@@ -49,7 +56,7 @@
 
 (defrecord Cbot-template [id template? current stop? awaiting?
                           states state-values state-count
-                          last-ended exec-func]
+                          last-ended exec-func stats]
   CbotP
   (is-template? [cbot]
                 template?)
@@ -58,31 +65,35 @@
       (agent (assoc cbot
                :template? false
                :id id
-               :state-values (into (:state-values cbot) (:param-map instance-context))))
+               :state-values (into (:state-values cbot) (:param-map instance-context))
+               :stats (agent {:max-len stats :info ()})))
       (util/warn-exception-and-throw
        :Cbot-template.create-with-id-and-context
        (RuntimeException. "Only templates should be cloned !")
        :id id)))
   (stop [cbot]
         (if stop?
-          cbot
+          (throw (java.lang.RuntimeException. (str "Cbot:" id " is stopped!")))
           (assoc cbot :stop? true)))
   (start [cbot]
         (if-not stop?
-          cbot
+          (throw (java.lang.RuntimeException. (str "Cbot:" id " is running!")))
           (assoc cbot :stop? false)))
   (exec [cbot]
-        (util/debug-info :Cbot-template.exec :current current)
+        (util/debug-info :Cbot-template.exec :current current :stop? stop?)
         (assert (and current states))
         (let [state (states current)
               now (. System currentTimeMillis)]
           (if (and (not stop?) (not awaiting?))
-            (let [opr-result (execute state state-values)
+            (let [t0 (System/nanoTime)
+                  opr-result (execute state state-values)
+                  delta (/ (- (System/nanoTime) t0) 1000) 
                   new-state-vals (into state-values (result2map current opr-result))
                   next-state (get-next state
                                        (if (map? opr-result)
                                          (:result opr-result) opr-result))]
-              (util/debug-info :Cbot-template.exec :opr-result opr-result)
+              (util/debug-info :Cbot-template.exec :opr-result opr-result :delta-micro delta)
+              (send-off stats store-stats state now delta)
               (if (or (is-long-running? state) (nil? next-state)) 
                 (do
                   (if (nil? next-state)
@@ -148,6 +159,7 @@
         (send *agent* (get-exec next-cbot)))
       next-cbot)
     (catch Exception e
+      (.printStackTrace e)
       (util/warn-exception :exec-cbot e :id (:id cbot) :current (:current cbot))
       cbot)))
 
@@ -181,7 +193,6 @@
         (send *agent* (get-exec next-cbot)))
       next-cbot)
     (catch Exception e
-      (.printStackTrace e)
       (util/warn-exception :start-cbot e :id (:id cbot) :current (:current cbot))
       cbot)))
 
@@ -214,17 +225,18 @@
   (send cbot-agent resume-cbot external-response)
   (str "resume command sent to " (.id @cbot-agent) " with external response:" external-response))
 
-(defn create-cbot-template [id current states inter-state-delay context]
+(defn create-cbot-template [id current states inter-state-delay context stats]
   (println (str "create-cbot-template inter-state-delay:" inter-state-delay))
   (Cbot-template.
    id true current true false states context 0 0
    (if (> inter-state-delay 0)
      (#'util/wrap-with-delay #'exec-cbot inter-state-delay)
-     #'exec-cbot)))
+     #'exec-cbot)
+   stats))
 
-(defn build-cbot-factory [id inter-state-delay parameters instances states]
+(defn build-cbot-factory [id inter-state-delay parameters instances states starting-state stats]
   (let [template (create-cbot-template
-                  id (first (keys states)) states inter-state-delay parameters)]
+                  id starting-state states inter-state-delay parameters stats)]
     (fn [instance-id]
       (if (nil? instance-id)
         (into [] (keys instances))
@@ -299,6 +311,8 @@
 (defmethod opr-factory "clojure-opr" [opr-name timeout retry-count retry-delay conf]
   (opr/clojure-opr conf))
 
+(defmethod opr-factory "date-time-opr" [opr-name timeout retry-count retry-delay conf]
+  (opr/date-time-opr conf))
 
 
 (defn flow-factory [v]
@@ -316,17 +330,6 @@
   ;(Thread/sleep 5000)
   (State. state-name (opr-factory opr-name timeout retry-count retry-delay conf) (flow-factory connect-vec)))
 
-(defn do-it []
-  (let [app-name (first (store/get-app-names))
-        app (store/get-app app-name)
-        id app-name
-        {interstate-delay :interstate-delay
-         parameters :parameters
-         instances :instances
-         pre-states :states} app]
-    (let [states (into {} (map (fn [info] [(info :key) (state-factory (info :key) info)]) pre-states))]
-      (build-cbot-factory id (Integer/parseInt interstate-delay) parameters instances states))))
-
 (def app-ctrl (ref {}))
 
 ;; Este ref tiene los cbot ya creados, si no existen, se crean y se
@@ -339,6 +342,7 @@
 (defn create-app-factory [app-key]
   (let [app (store/get-app app-key)
         {interstate-delay :interstate-delay
+         stats :stats-cache-len
          parameters :parameters
          instances :instances
          pre-states :states} app]
@@ -349,7 +353,9 @@
                           (Integer/parseInt interstate-delay)
                           parameters
                           instances
-                          states))))
+                          states
+                          (:key (first pre-states))
+                          (if stats (fix-number stats) 100)))))
 (defn get-app-factory [app-key]
   (if-let [factory (app-key @app-ctrl)]
     factory
@@ -384,6 +390,12 @@
   (println "apply-cmd " cmd " " app-k " " inst-k)
   (let [cbot (get-cbot app-k inst-k)]
     @cbot))
+
+(defmethod apply-cmd "current-pos" [app-k inst-k cmd]
+  (println "apply-cmd " cmd " " app-k " " inst-k)
+  (let [current (:current @(get-cbot app-k inst-k))
+        result (ui/state-coord app-k current)]
+    result))
 
 (defn -mainx [& args]
   (println "Iniciando el CBOT-P")

@@ -3,6 +3,7 @@
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [org.clojure/tools.logging "[0.2,)"]
                  [org.clojure/java.jdbc "[0,)"]
+                 [org.clojure/data.json "0.1.1"]
                  [javax.mail/mail "[1.4.1,)"
                   :exclusions [javax.activation/activation]]
                  [log4j "[1.2.16,)"]

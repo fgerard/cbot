@@ -12,6 +12,7 @@
             [seesaw.bind :as bnd]
             [mx.interware.cbot.store :as store]))
 
+(def IMG-PATH "resources/public/images/")
 
 (defprotocol KeyedObject
   (get-key [this])
@@ -235,7 +236,16 @@
    (mig/mig-panel :items [["No info needed" "center"]])
    :no-opr
    (mig/mig-panel :items [["No info needed" "center"]])
-   })
+   :date-time-opr
+   (mig/mig-panel :items [["Format:" "right"] [(ss/text :id :format :columns 25 :text "yyyy/MM/dd HH:mm:ss") "wrap"]])
+   :clojure-opr
+   (mig/mig-panel :items [["Code:" "right"]
+                          [(ss/text :id :code
+                                    :multi-line? true
+                                    :columns 50
+                                    :rows 10
+                                    :text "(fn [context] {:result <result> :otros <valores> ...)")
+                           "wrap"]])})
 
 (defn get-state-opr [state]
   (:opr (:conf-map state)))
@@ -262,6 +272,18 @@
   (let [panel ((keyword (get-state-opr state)) opr-panels)
         msg (ss/select (ss/to-root panel) [:#msg])]
     (.setText msg (:msg (:conf (:conf-map state))))
+    panel))
+
+(defmethod set-in-ui "clojure-opr" [state]
+  (let [panel ((keyword (get-state-opr state)) opr-panels)
+        code (ss/select (ss/to-root panel) [:#code])]
+    (.setText code (:code (:conf (:conf-map state))))
+    panel))
+
+(defmethod set-in-ui "date-time-opr" [state]
+  (let [panel ((keyword (get-state-opr state)) opr-panels)
+        format (ss/select (ss/to-root panel) [:#format])]
+    (.setText format (:format (:conf (:conf-map state))))
     panel))
 
 (defmethod set-in-ui "print-context-opr" [state]
@@ -367,6 +389,7 @@
   (let [curr-opr (:opr (:conf-map state))
         model (doto (DefaultComboBoxModel.)
                 (.addElement "clojure-opr")
+                (.addElement "date-time-opr")
                 (.addElement "get-http-opr")
                 (.addElement "get-mail-opr")
                 (.addElement "human-opr")
@@ -412,6 +435,14 @@
 (defmethod get-from-ui "print-msg-opr" [operation-name]
   (let [diag ((keyword operation-name) opr-panels)]
     {:opr operation-name :conf {:msg (ss/text (ss/select (ss/to-root diag) [:#msg]))}}))
+
+(defmethod get-from-ui "clojure-opr" [operation-name]
+  (let [diag ((keyword operation-name) opr-panels)]
+    {:opr operation-name :conf {:code (ss/text (ss/select (ss/to-root diag) [:#code]))}}))
+
+(defmethod get-from-ui "date-time-opr" [operation-name]
+  (let [diag ((keyword operation-name) opr-panels)]
+    {:opr operation-name :conf {:format (ss/text (ss/select (ss/to-root diag) [:#format]))}}))
 
 (defmethod get-from-ui "print-context-opr" [operation-name]
   (let [diag ((keyword operation-name) opr-panels)]
@@ -516,7 +547,7 @@
   (doseq [obj (key-id app)] (.addElement model obj))
   model)
 
-(defrecord ApplicationInfo [key interstate-delay states parameters instances]
+(defrecord ApplicationInfo [key interstate-delay states parameters instances stats-cache-len]
   KeyedObject
   (toString [this] (if key (str (name key)) ""))
   (get-key [this] key)
@@ -528,10 +559,8 @@
                     :instances (into {} (map
                                          (fn [inst] [(get-key inst) (get-rest inst)])
                                          (vals instances)))
-                    :states states})) ;;fg
-'(into {} (map
-                                         (fn [state] [(get-key state) (get-rest state)])
-                                         (vals states)))
+                    :states states
+                    :stats-cache-len stats-cache-len})) ;;fg
 
 (def finish (atom {:x 0 :y 0}))
 (def current-btn (atom nil))
@@ -687,6 +716,19 @@
     (if (.hasFocus b1)
       (.drawString g (str idx) (int (/ (+ x1 x2) 2)) (int (/ (+ y1 y2) 2))))))
 
+(def icons (atom {}))
+
+(defn icon-of [opr]
+  (if-let [icon (@icons opr)]
+    icon
+    (let [icon (javax.swing.ImageIcon. (str IMG-PATH "/" opr ".gif"))]
+      (swap! icons assoc opr icon)
+      icon)))
+
+(def icon-of2
+  (memoize (fn [opr]
+             (javax.swing.ImageIcon. (str IMG-PATH "/" opr ".gif")))))
+
 (defn state-button [model idx]
   (let [state (.elementAt model idx)
         lbl (name (get-key state))
@@ -720,6 +762,7 @@
         dim (.getPreferredSize btn)]
     (doto btn
       (.setSize dim)
+      (.setIcon (icon-of2 (:opr (:conf-map state))))
       (.setLocation (-> state :flow :x) (-> state :flow :y))
       (ss/listen
        :mouse-pressed (fn [e]
@@ -888,12 +931,17 @@
                  :listen [:mouse-clicked (modify-model)])
                   (.setSelectionMode javax.swing.ListSelectionModel/SINGLE_SELECTION)) 
         states (ss/scrollable st-list)
-        up-st-btn (ss/button
-                    :text "Up"
-                    :listen [:action (up-model st-list)])
-        dn-st-btn (ss/button
-                    :text "Down"
-                    :listen [:action (dn-model st-list)])
+        up-st-btn (doto
+                      (ss/button :text ""
+                                 :listen [:action (up-model st-list)])
+                    (.setIcon (javax.swing.ImageIcon. (str IMG-PATH "/arrow-1.gif")))
+                    (.setPreferredSize (java.awt.Dimension. 20 20))) 
+        dn-st-btn (doto
+                      (ss/button :text ""
+                                 :listen [:action (dn-model st-list)])
+                    (.setIcon (javax.swing.ImageIcon. (str IMG-PATH "/arrow-3.gif")))
+                    (.setPreferredSize (java.awt.Dimension. 20 20))
+                    ) 
         add-st-btn (ss/button
                     :text "Add"
                     :listen [:action (add-model st-list (StateInfo. nil {} {:x 0 :y 20 :connect []}))])
@@ -915,7 +963,11 @@
                          :id :interstate-delay
                          :text (:interstate-delay app) :columns 6) ""]
                        ["ms" "left, wrap"]
-
+                       ["Statistics cache:" "right"]
+                       [(ss/text
+                         :id :stats-cache-len
+                         :text (:stats-cache-len app) :columns 6) ""]
+                       ["states" "left, wrap"]
                        ["Context" "left,span 2"] ["Instance" "left,wrap"]
                        [context "span 2,width 250"]
                        [instances "span 2,width 250,wrap"]
@@ -940,13 +992,15 @@
               instance-model (.getModel (ss/select (ss/to-root app-panel) [:#instance-list]))
               state-model (.getModel (ss/select (ss/to-root app-panel) [:#state-list]))
               interstate-delay (ss/text (ss/select (ss/to-root app-panel) [:#interstate-delay]))
+              stats-cache-len (ss/text (ss/select (ss/to-root app-panel) [:#stats-cache-len]))
               result (ApplicationInfo.
                       (keyword  k)
                       interstate-delay
                       ;;fg (model2map state-model)
                       (model2vec state-model)
                       (model2map param-model)
-                      (model2map instance-model))]
+                      (model2map instance-model)
+                      stats-cache-len)]
           (log/debug (str (into {} (map (fn [k] [k (k result)]) (keys result)))))
           result)))))
 
@@ -1012,33 +1066,24 @@
                         :otherwise v)]))
                 (keys m))))
 
+(defn create-app-from-map [k-id v-map]
+  (ApplicationInfo. k-id
+                    (str (:interstate-delay v-map))
+                    (into []
+                          (map (fn [m]
+                                 (StateInfo. (:key m) (map-key2str (:conf-map m)) (:flow m)))
+                               (:states v-map)))
+                    (map-into-keyval (:parameters v-map))
+                    (into {} (map (fn [[k v]]
+                                    [k (InstanceInfo. k (map-into-keyval (:param-map v)))])
+                                  (:instances v-map)))
+                    (str (:stats-cache-len v-map))))
+
 (defn- map2model-APP [mapa model]
   (doseq [[k v] mapa]
-    (let [app (ApplicationInfo.
-                        k
-                        (str (:interstate-delay v))
-                        (into []
-                              (map (fn [m]
-                                     (StateInfo.
-                                         (:key m)
-                                         (map-key2str (:conf-map m))
-                                         (:flow m)))
-                                   (:states v)))
-                        (map-into-keyval (:parameters v))
-                        (into {} (map (fn [[k v]]
-                                        [k (InstanceInfo.
-                                            k
-                                            (map-into-keyval (:param-map v)))])
-                                      (:instances v))))]
+    (let [app (create-app-from-map k v)]
       (.addElement model app)))
   model)
-'(into {}
-                              (map (fn [[k v]]
-                                     [k (StateInfo.
-                                         k
-                                         (map-key2str (:conf-map v) )
-                                         (:flow v))])
-                                   (:states v)))
 
 (defn create-cbot-panel []
   (let [model (map2model-APP (store/get-apps) (listbox-model-factory)) 
@@ -1049,7 +1094,7 @@
         app (ss/scrollable app-list)
         add-app-btn (ss/button
                      :text "Add"
-                     :listen [:action  (add-model app-list (ApplicationInfo. nil nil nil nil nil))])
+                     :listen [:action  (add-model app-list (ApplicationInfo. nil nil nil nil nil nil))])
         del-app-btn (ss/button
                      :text "Delete"
                      :listen [:action (delete-model app-list)])
@@ -1074,3 +1119,55 @@
            ss/pack!
            ss/show!))))
 
+
+(defn max-x-y-comp [[max-x max-y] comp]
+  (let [point (.getLocation comp)
+        dim (.getSize comp)
+        x (+ (.getX point) (.getWidth dim))
+        y (+ (.getY point) (.getHeight dim))
+        result [(max max-x x) (max max-y y)]]
+    result))
+
+(defn minimum-size [panel]
+  (let [comps (.getComponents panel)
+        min-size (reduce max-x-y-comp [0 0] comps)
+        dim (java.awt.Dimension. (min-size 0) (min-size 1))]
+    (doto panel
+      (.setMinimumSize dim)
+      (.setMaximumSize dim)
+      (.setPreferredSize dim))))
+
+(defn create-jpg [k-app]
+  (let [app-map (store/get-app k-app)
+        app (create-app-from-map k-app app-map)
+        model (fill-model-vec app (listbox-model-factory) :states)
+        panel (minimum-size (state-panel model))
+        dim (.getPreferredSize panel)
+        w (+ 20 (.getWidth dim)) 
+        h (+ 20 (.getHeight dim)) 
+        buffimg (java.awt.image.BufferedImage. w h java.awt.image.BufferedImage/TYPE_INT_RGB)
+        graphics (doto (.getGraphics buffimg)
+                   (.setColor java.awt.Color/WHITE)
+                   (.fillRect 0 0 w h))
+        baos (java.io.ByteArrayOutputStream.)
+        encoder (com.sun.image.codec.jpeg.JPEGCodec/createJPEGEncoder baos)]
+    (.paint panel graphics)
+    
+    (.encode encoder buffimg)
+    (.toByteArray baos)))
+
+(def states-coords
+  (memoize
+   (fn [k-app]
+    (let [app (create-app-from-map k-app (store/get-app k-app))]
+      (into {}
+            (map
+             (fn [state]
+               (println state)
+               (println (get-key state))
+               (println (:x (:flow state)))
+               {(get-key state) {:x (:x (:flow state)) :y (:y (:flow state))}})
+             (:states app)))))))
+
+(defn state-coord [k-app k-state]
+  ((states-coords k-app) k-state))

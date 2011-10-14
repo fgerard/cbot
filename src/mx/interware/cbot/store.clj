@@ -36,8 +36,6 @@
 (defn app-store-save []
   (log/info (str "saving application configuration to " (.getAbsolutePath STORE-FILE)))
   (dosync
-   (println (str (Thread/currentThread)))
-   (Thread/sleep 10000)
    (alter app-store #(inc-version %))
    (with-open [ostream (java.io.PrintWriter. (java.io.FileWriter. STORE-FILE-NAME))]
      (write-lines ostream @app-store))))
@@ -98,7 +96,7 @@
 (defn app-store-load []
   (dosync
    (with-open [istream (java.io.BufferedReader. (java.io.FileReader. STORE-FILE-NAME))]
-     (let [store (into (sorted-map) (map load-string (read-lines istream)))]
+     (let [store (into {} (map load-string (read-lines istream)))]
        (log/debug (str "loading :" store))
        (ref-set app-store
                 (app-store-rec. (:version store) (:updated store) (:configuration store)))))))
