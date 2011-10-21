@@ -58,8 +58,9 @@
       (try
         (let [env (get-thread-bindings)
 	      env-op #(with-bindings* env op context)
-	      fut (future-call env-op)]
-	  (let [result (.get fut mls TimeUnit/MILLISECONDS)]
+	      fut (future-call env-op)
+              waitMillis (contextualize-int mls context)]
+	  (let [result (.get fut waitMillis TimeUnit/MILLISECONDS)]
 	    (if (isa? (type result) ExecutionException)
 	      (throw (.getCause result))
 	      result)))

@@ -7,31 +7,31 @@
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [compojure.response :as response]
+            [clojure.data.json :as json]
             [ring.middleware.session :as session]))
+
+(defn to-long [n]
+  (try
+    (Long/parseLong (str n))
+    (catch NumberFormatException e 0)))
 
 (defroutes main-routes
 
   (GET "/" []
        (index-page))
   
-  (GET "/apps" [] (apps-page))
-
-  (GET "/test" {prams :params :as request}
-              (str "<<<<>>>>> " (class request) " " request))
+  (GET "/apps" [] (json/json-str (apps)))
 
   (GET "/apps/:app-name" [app-name]
-       (apps-admin app-name))
+       (app-instances app-name))
   
-  (GET "/apps/:app-name/:inst-name" [app-name inst-name cmd]
-       (send-cmd app-name inst-name cmd))
+  (GET "/apps/:app-name/:inst-name" [app-name inst-name cmd uuid timeout msg]
+       (send-cmd app-name inst-name cmd {:uuid uuid :timeout (to-long timeout) :msg msg}))
   
-  (GET "/prueba/:page" [page id name] (str "page=" page " id:" id " name:" name))
-
-  (GET "/cbotimg" [app]
+  (GET "/cbotimg/:app" [app]
        {:status 200
         :headers {"Content-type" "image/jpeg"}
-        :body (java.io.ByteArrayInputStream. (create-jpg (keyword app))) }
-       )
+        :body (java.io.ByteArrayInputStream. (create-jpg (keyword app))) })
   
   (route/resources "/")
 

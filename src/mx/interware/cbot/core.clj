@@ -5,7 +5,9 @@
     (java.io PrintWriter OutputStreamWriter OutputStream 
              InputStream BufferedReader InputStreamReader
              File FileWriter)
-    (java.util.concurrent Future TimeUnit TimeoutException ExecutionException))
+    (java.util UUID)
+    (java.util.concurrent Future TimeUnit TimeoutException ExecutionException LinkedBlockingQueue))
+    
   (:require [clojure.java.io :as io]
             [mx.interware.cbot.store :as store]
             [mx.interware.cbot.operations :as opr]
@@ -31,12 +33,46 @@
               nil
               (next-func result)))
   (is-long-running? [state]
-                    (= opr opr/human-opr)))
+                    (let [a (str (class opr))]
+                      (.matches a ".*human_opr.*"))))
 
-(defn store-stats [{max-len :max-len info :info :as stats} state now delta]
-  (let [result (conj info {:state (:id state) :when now :delta-micro delta})]
+(defn trunc-to [s len]
+  (let [ss (str s)]
+    (if (< len (.length ss))
+      (.substring ss 0 len)
+      ss)))
+
+(defn- frx [n frac]
+  (int (- n (* frac (Math/floor (double (/ n frac)))))))
+
+(defn rds [n frac]
+  (Math/floor (double (/ n frac))))
+
+(def FRONTERA (* 1000 3600 24 365 10)) ;diez anos!!
+
+(def formato-fecha (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss.SSS"))
+
+(defn- to-zz [i len]
+  (let [istr (str i)]
+    (str (subs "0000000000000" 0 (- len (.length istr))) istr)))
+
+(defn- format-delta [delta]
+  (if (> FRONTERA delta)
+    (let [milis (to-zz (frx delta 1000) 3) 
+          resto (rds delta 1000)
+          secs (to-zz (frx resto 60) 2) 
+          resto (rds resto 60)
+          mins (to-zz (frx resto 60) 2) 
+          resto (rds resto 60)
+          hras (to-zz (frx resto 24) 2) 
+          dias (Math/floor (rds resto 24))]
+      (str dias " " hras ":" mins ":" secs "." milis))
+    (.format formato-fecha delta)))
+
+(defn store-stats [{max-len :max-len info :info :as stats} state val now delta]
+  (let [result (conj info {:state (:id state) :result (str "<![CDATA[" (trunc-to val 80) "]]>") :when (format-delta now) :delta-micro (format-delta delta)})]
     (if (> (count result) max-len)
-      (assoc stats :info (into [] (rest result)))
+      (assoc stats :info (butlast result))
       (assoc stats :info result))))
 
 (defprotocol CbotP
@@ -54,6 +90,24 @@
     (into {} (assoc (dissoc result :result) current (:result result)))
     {current result}))
 
+(defn get-cbot-value [cbot d-uuid d-timeout]
+  (let [{uuid :uuid semaphore :semaphore} @cbot]
+    (if (= (str uuid) d-uuid)
+      (do
+        (log/debug "timeout:" d-timeout " semaphore queue length:" (.getQueueLength semaphore))
+        (let [acquired? (.tryAcquire semaphore d-timeout TimeUnit/MILLISECONDS)]
+          (log/debug "value acquired? " acquired?))))
+    @cbot))
+
+(defn- delta-human [label]
+  (if-let [prefix (re-find #".*-opr@" label)]
+    (try
+      (let [at (Long/parseLong (subs label (.length prefix)))]
+        (- (System/currentTimeMillis) at))
+      (catch NumberFormatException e
+        (System/currentTimeMillis)))    
+    (System/currentTimeMillis)))
+
 (defrecord Cbot-template [id template? current stop? awaiting?
                           states state-values state-count
                           last-ended exec-func stats]
@@ -63,10 +117,13 @@
   (create-with-id-and-context [cbot id instance-context]
     (if template?
       (agent (assoc cbot
-               :template? false
-               :id id
-               :state-values (into (:state-values cbot) (:param-map instance-context))
-               :stats (agent {:max-len stats :info ()})))
+                          :template? false
+                          :id id
+                          :state-values (into (:state-values cbot) (:param-map instance-context))
+                          :stats (agent {:max-len stats
+                                         :info (list)})
+                          :uuid (UUID/randomUUID)
+                          :semaphore (java.util.concurrent.Semaphore. 0))) 
       (util/warn-exception-and-throw
        :Cbot-template.create-with-id-and-context
        (RuntimeException. "Only templates should be cloned !")
@@ -85,15 +142,17 @@
         (let [state (states current)
               now (. System currentTimeMillis)]
           (if (and (not stop?) (not awaiting?))
-            (let [t0 (System/nanoTime)
+            (let [t0 (System/currentTimeMillis)
                   opr-result (execute state state-values)
-                  delta (/ (- (System/nanoTime) t0) 1000) 
+                  delta (- (System/currentTimeMillis) t0)  
                   new-state-vals (into state-values (result2map current opr-result))
                   next-state (get-next state
                                        (if (map? opr-result)
-                                         (:result opr-result) opr-result))]
-              (util/debug-info :Cbot-template.exec :opr-result opr-result :delta-micro delta)
-              (send-off stats store-stats state now delta)
+                                         (:result opr-result) opr-result))
+                  uuid (UUID/randomUUID)]
+              (util/debug-info :Cbot-template.exec :opr-result opr-result :delta-micro delta :next-state next-state)
+              (send-off
+               stats store-stats state (current new-state-vals) now delta)
               (if (or (is-long-running? state) (nil? next-state)) 
                 (do
                   (if (nil? next-state)
@@ -104,22 +163,27 @@
 	          (assoc cbot
 	            :state-values new-state-vals
 	            :awaiting? true
-    	            :last-ended now))
+    	            :last-ended now
+                    :uuid uuid))
                 (do
 	          (assoc cbot
 	            :state-values new-state-vals
 	            :current next-state
 	            :last-ended now
-	            :state-count (inc state-count)))))
+	            :state-count (inc state-count)
+                    :uuid uuid))))
             cbot)))
   (resume [cbot response]
           (assert (and current states))
           (let [state (states current)
                 now (. System currentTimeMillis)
                 long-running? (is-long-running? state)]
-            (if (and response awaiting? long-running? (not stop?))
-              (let [new-state-vals (assoc state-values current response)
-                    next-current (get-next state response)]
+            (if (and response awaiting? (not stop?))
+              (let [started-at (current state-values)
+                    new-state-vals (assoc state-values current response)
+                    next-current (get-next state response)
+                    uuid (UUID/randomUUID)]
+                (send-off stats store-stats state (current new-state-vals) now (delta-human started-at))
                 (if (nil? next-current)
                   (let [next-state (keyword response)]
                     (if (next-state states)
@@ -128,7 +192,8 @@
                         :current next-state
 			:awaiting? false
 		        :last-ended now
-	     	        :state-count (inc state-count))
+	     	        :state-count (inc state-count)
+                        :uuid uuid)
                       (do
                         (util/log-info :error :Cbot-template.resume
                                        :id id :current current
@@ -139,7 +204,8 @@
 		    :current next-current
                     :awaiting? false
 	            :last-ended now
-		    :state-count (inc state-count))))
+		    :state-count (inc state-count)
+                    :uuid uuid)))
               (throw
                (RuntimeException.
                 (str "illegal state "
@@ -151,10 +217,18 @@
               exec-func
               exec-cbot)))
 
+(defn- unlock-waiting-threads [cbot]
+  (send *agent* (fn [cbot]
+                  (if-let [semaphore (:semaphore cbot)]
+                    (let [q-len (.getQueueLength semaphore)]
+                      (.release semaphore q-len)))
+                  cbot)))
+
 (defn- exec-cbot [cbot]
   (try
     (let [next-cbot (exec cbot)
           send? (and (not (:stop? next-cbot)) (not (:awaiting? next-cbot)))]
+      (unlock-waiting-threads cbot)
       (if send?
         (send *agent* (get-exec next-cbot)))
       next-cbot)
@@ -167,6 +241,7 @@
   (try
     (let [next-cbot (resume cbot result)
           send? (and (not (:stop? next-cbot)) (not (:awaiting? next-cbot)))]
+      (unlock-waiting-threads cbot)
       (if send?
         (send *agent* (get-exec next-cbot)))
       next-cbot)
@@ -178,6 +253,7 @@
 (defn- stop-cbot [cbot]
   (try
     (let [next-cbot (stop cbot)]
+      (unlock-waiting-threads cbot)
       (util/log-info :info :stop-cbot :msg "cbot stoped !")
       next-cbot)
     (catch Exception e
@@ -187,6 +263,7 @@
 (defn- start-cbot [cbot]
   (try
     (let [next-cbot (start cbot)]
+      (unlock-waiting-threads cbot)      
       (util/log-info :info :start-cbot :id (:id next-cbot)
                      :current (:current next-cbot) :msg "cbot started !!!!")
       (if (not (.awaiting? next-cbot))
@@ -206,11 +283,16 @@
                               (log/debug (str "rule (<exit-state> <reg-exp) " par " value:" value))
                               (re-matches (re-pattern (second par)) value))
                             (partition 2 vec-rule))))]
-        seleccion
-        ult))))
+        (do
+          (log/debug (str "re-flow next state:" seleccion))
+          seleccion)
+        (do
+          (log/debug (str "re-flow next state:" ult))
+          ult)))))
 
 (defn state-name-flow [kname]
   (fn [_]
+    (log/debug (str "state-name-flow next state:" kname))
     kname))
 
 (defn cbot-start [cbot-agent]
@@ -226,7 +308,6 @@
   (str "resume command sent to " (.id @cbot-agent) " with external response:" external-response))
 
 (defn create-cbot-template [id current states inter-state-delay context stats]
-  (println (str "create-cbot-template inter-state-delay:" inter-state-delay))
   (Cbot-template.
    id true current true false states context 0 0
    (if (> inter-state-delay 0)
@@ -269,10 +350,10 @@
         0))))
 
 (defn- wrap-opr [opr timeout retry-count retry-delay conf]
-  (let [timeout (fix-number timeout)
+  (let [timeout timeout
         retry-count (fix-number retry-count)
         retry-delay (fix-number retry-delay)
-        f1 (if (> timeout 0) (util/wrap-with-timeout (opr conf) timeout) (opr conf)) 
+        f1 (if (not= (str timeout) "0") (util/wrap-with-timeout (opr conf) timeout) (opr conf)) 
         f2 (if (> retry-count 0)
              (util/try-times-opr f1 retry-count retry-delay)
              f1)]
@@ -371,31 +452,61 @@
        cbot
        (let [factory (get-app-factory app-key)
              cbot (factory inst-key)]
-         (println ">>> " cbot "  " (class cbot))
          (alter cbot-ctrl assoc k cbot)
          cbot)))))
 
-(defmulti apply-cmd (fn [_ _ cmd] cmd))
+(defmulti apply-cmd (fn [_ _ cmd & params] cmd))
 
-(defmethod apply-cmd "start" [app-k inst-k cmd]
+(defmethod apply-cmd "start" [app-k inst-k cmd & _]
   (let [cbot (get-cbot app-k inst-k)]
-    (println cbot " " (class cbot))
     (cbot-start cbot)))
 
-(defmethod apply-cmd "stop" [app-k inst-k cmd]
+(defmethod apply-cmd "stop" [app-k inst-k cmd & _]
   (let [cbot (get-cbot app-k inst-k)]
     (cbot-stop cbot)))
 
-(defmethod apply-cmd "status" [app-k inst-k cmd]
-  (println "apply-cmd " cmd " " app-k " " inst-k)
-  (let [cbot (get-cbot app-k inst-k)]
-    @cbot))
+;;
+(defmethod apply-cmd "status" [app-k inst-k cmd & param]
+  (if (and param app-k inst-k)
+    (if-let [cbot (get-cbot app-k inst-k)]
+      (let [{uuid :uuid timeout :timeout} (first param)
+            cbot-value (get-cbot-value (get-cbot app-k inst-k) uuid timeout)]
+        cbot-value)
+      {:cbot-msg (str "No cbot for " app-k " application and " inst-k)})
+    {:cbot-msg "Application key or instance key missing!"}))
 
-(defmethod apply-cmd "current-pos" [app-k inst-k cmd]
-  (println "apply-cmd " cmd " " app-k " " inst-k)
-  (let [current (:current @(get-cbot app-k inst-k))
-        result (ui/state-coord app-k current)]
-    result))
+(defmethod apply-cmd "current-pos" [app-k inst-k cmd & param]
+  (if (and param app-k inst-k)
+    (if-let [cbot (get-cbot app-k inst-k)]
+      (let [{uuid :uuid timeout :timeout} (first param)
+            cbot-value (get-cbot-value (get-cbot app-k inst-k) uuid timeout)
+            current (:current cbot-value)
+            result (ui/state-coord app-k current)]
+        (if result
+          (assoc result
+            :app (name app-k)
+            :inst (name inst-k)
+            :uuid (str (:uuid cbot-value))
+            :id (:id cbot-value)
+            :current (:current cbot-value)
+            :stop? (:stop? cbot-value)
+            :awaiting? (:awaiting? cbot-value)
+            :state-count (:state-count cbot-value)
+            :last-ended (:last-ended cbot-value)
+            :stats @(:stats cbot-value)
+            :status (:instance-status_ (:state-values cbot-value))) 
+          {:cbot-msg (str "No state " current " in application " app-k) }))
+      {:cbot-msg (str "No cbot for " app-k " application and " inst-k)})
+    {:cbot-msg "Application key or instance key missing!"}))
+
+(defmethod apply-cmd "resume" [app-k inst-k cmd & param]
+  (if (and param app-k inst-k)
+    (if-let [cbot (get-cbot app-k inst-k)]
+      (let [{msg :msg} (first param)
+            result (cbot-resume cbot msg)]
+        result)
+      {:cbot-msg (str "No cbot for " app-k " application and " inst-k)})
+    {:cbot-msg "Application key or instance key missing!"}))
 
 (defn -mainx [& args]
   (println "Iniciando el CBOT-P")

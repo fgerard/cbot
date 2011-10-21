@@ -842,6 +842,24 @@
                    (contentsChanged [e]))]
     (.addListDataListener model listener)))
 
+(defn max-x-y-comp [[max-x max-y] comp]
+  (let [point (.getLocation comp)
+        dim (.getSize comp)
+        x (+ (.getX point) (.getWidth dim))
+        y (+ (.getY point) (.getHeight dim))
+        result [(max max-x x) (max max-y y)]]
+    result))
+
+(defn minimum-size [panel]
+  (let [comps (.getComponents panel)
+        min-size (reduce max-x-y-comp [0 0] comps)
+        dim (java.awt.Dimension. (min-size 0) (min-size 1))]
+    (doto panel
+      (.setMinimumSize dim)
+      (.setMaximumSize dim)
+      (.setPreferredSize dim))))
+
+
 (defn state-panel [model]
   (let [px (proxy [JPanel] []
              (paint [g]
@@ -874,11 +892,11 @@
     (doto px
       (.setLayout nil)
       (.setBackground java.awt.Color/white)
-      (.setPreferredSize (java.awt.Dimension. 600 350))
-      (.setMinimumSize (java.awt.Dimension. 600 350))
-      (.setSize 600 350))
+      (.setPreferredSize (java.awt.Dimension. 2000 2000))
+      (.setMinimumSize (java.awt.Dimension. 2000 2000))
+      (.setSize 2000 2000))
     (add-all-btns model px)
-    px))
+    (minimum-size px)))
 
 (defn up-model [list]
   (fn [e]    
@@ -1120,22 +1138,6 @@
            ss/show!))))
 
 
-(defn max-x-y-comp [[max-x max-y] comp]
-  (let [point (.getLocation comp)
-        dim (.getSize comp)
-        x (+ (.getX point) (.getWidth dim))
-        y (+ (.getY point) (.getHeight dim))
-        result [(max max-x x) (max max-y y)]]
-    result))
-
-(defn minimum-size [panel]
-  (let [comps (.getComponents panel)
-        min-size (reduce max-x-y-comp [0 0] comps)
-        dim (java.awt.Dimension. (min-size 0) (min-size 1))]
-    (doto panel
-      (.setMinimumSize dim)
-      (.setMaximumSize dim)
-      (.setPreferredSize dim))))
 
 (defn create-jpg [k-app]
   (let [app-map (store/get-app k-app)
@@ -1148,7 +1150,8 @@
         buffimg (java.awt.image.BufferedImage. w h java.awt.image.BufferedImage/TYPE_INT_RGB)
         graphics (doto (.getGraphics buffimg)
                    (.setColor java.awt.Color/WHITE)
-                   (.fillRect 0 0 w h))
+                   (.fillRect 0 0 w h)
+                   )
         baos (java.io.ByteArrayOutputStream.)
         encoder (com.sun.image.codec.jpeg.JPEGCodec/createJPEGEncoder baos)]
     (.paint panel graphics)
@@ -1163,9 +1166,9 @@
       (into {}
             (map
              (fn [state]
-               (println state)
-               (println (get-key state))
-               (println (:x (:flow state)))
+               ;;(println state)
+               ;;(println (get-key state))
+               ;;(println (:x (:flow state)))
                {(get-key state) {:x (:x (:flow state)) :y (:y (:flow state))}})
              (:states app)))))))
 
