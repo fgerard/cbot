@@ -90,6 +90,15 @@ h3 a{ text-decoration: none; }
 
 
 #container { padding:20px 0;}
+
+#img-states {
+	background-image: url(/cbotimg?app=WEB);
+	background-repeat: no-repeat;
+	visibility: visible;
+	margin-top: 10px;
+	margin-left: 30px;
+}
+
 #sem-green {
 	background-image: url(../images/sem-green.png);
 	background-repeat: no-repeat;
@@ -111,6 +120,28 @@ h3 a{ text-decoration: none; }
 	margin-top: 10px;
 	margin-left: 30px;
 }
+
+#runimg {
+	background-image: url(../images/atom.gif);
+	background-repeat: no-repeat;
+	visibility: visible;
+	margin-top: 0px;
+	margin-left: 0px;
+}  
+#stopimg {
+	background-image: url(../images/stop1.jpg);
+	background-repeat: no-repeat;
+	visibility: visible;
+	margin-top: 0px;
+	margin-left: 0px;
+}  
+#waitimg {
+	background-image: url(../images/leer.gif);
+	background-repeat: no-repeat;
+	visibility: visible;
+	margin-top: 0px;
+	margin-left: 0px;
+}  
 
 .small-nav {
 	color:#666666;

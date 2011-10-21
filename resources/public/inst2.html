@@ -5,7 +5,8 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="stylesheet" href="css/instance.css" type="text/css"
       media="all">
-<script src="/js/jsbot.js" type="text/javascript"></script>
+<script src="/js/jquery-1.6.4.min.js" type="text/javascript"></script>
+<script src="/js/cbot.js" type="text/javascript"></script>
 </head>
 <body>
 <!-- Header -->
@@ -17,37 +18,12 @@
       <div id="top-navigation"> Welcome <a href="#"><strong>Administrator</strong></a><span> |</span> <a href="#">Log out</a> </div>
     </div>
     <!-- End Logo + Top Nav -->
-    <!-- Main Nav -->
-    <div id="navigation">
-      <ul>
-        <li><a href="#" class="active"><span>Primaria</span></a></li>
-        <li><a href="#"><span>Texto 1</span></a></li>
-        <li><a href="#"><span>Texto 2</span></a></li>
-        <li><a href="#"><span>Texto 3</span></a></li>
-        <li><a href="#"><span>Texto 4</span></a></li>
-      </ul>
-    </div>
-    <!-- End Main Nav -->
   </div>
 </div>
 <!-- End Header -->
 <!-- Container -->
 <div id="container">
   <div class="shell">
-    <!-- Small Nav -->
-    <div class="small-nav"> <a href="#">Web</a> &gt; Primaria &gt; Web admin console &gt; Status</div>
-    <!-- End Small Nav -->
-    <!-- Message OK -->
-    <div class="msg msg-ok">
-      <p><strong>Mensaje OK!</strong></p>
-      <a href="#" class="close">close</a> </div>
-    <!-- End Message OK -->
-    <!-- Message Error -->
-    <div class="msg msg-error">
-      <p><strong>Mensaje Error!</strong></p>
-      <a href="#" class="close">close</a> </div>
-    <!-- End Message Error -->
-    <br>
     <!-- Main -->
     <div id="main">
       <div class="cl">&nbsp;</div>
@@ -67,72 +43,20 @@
           <div id="states" class="box-content" style="position: relative;">
             <image src="/cbotimg?app=WEB">
             <div id="mark" style="position: absolute; left: 0; top: 0;
-          width: 40px; height: 40px;">
-              <div id="runimg" style="position: absolute; visibility: hidden; left: 40px;
-          top: 5px; width: 40px; height: 40px; display: inherit">
-                <image src="/images/atom.gif"/>
-              </div>
-              <div id="stopimg" style="position: absolute; visibility: visible; left: 40px;
-          top: 5px; width: 40px; height: 40px; display: inherit">
-                <image src="/images/stop1.jpg"/>
-              </div>
-              <div id="waitimg" style="position: absolute; visibility: hidden; left: 40px;
-          top: 5px; width: 40px; height: 40px; display: inherit">
-                <image src="/images/escribir.gif"/>
-              </div>
+                                  width: 50px; height: 50px;">
+              <div id="runimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="waitimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="stopimg" style="position: relative; display: inherit; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
             </div>
+
           </div>
           <!-- Table -->
         </div>
         <!-- End Box -->
 
-        <!-- Box -->
-        <div class="box">
-          <!-- Box Head -->
-          <div class="box-head">
-            <h2 class="left">Título</h2>
-            <div class="right">
-            </div>
-          </div>
-          <!-- End Box Head -->
-          <!-- Table -->
-          <div class="table">
-            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <th>Título </th>
-                <th>Resultados</th>
-              </tr>
-              <tr>
-                <td><h3>Stop</h3></td>
-                <td id="stop?">True</td>
-              </tr>
-              <tr class="odd">
-                <td><h3>Awaiting</h3></td>
-                <td id="awaiting?">False</td>
-              </tr>
-              <tr>
-                <td><h3>Current</h3></td>
-                <td id="current">Context</td>
-              </tr>
-              <tr class="odd">
-                <td><h3>State-count</h3></td>
-                <td id="state-count">149</td>
-              </tr>
-              <tr>
-                <td><h3>Last-ended</h3></td>
-                <td id="last-ended">128978127873128798712</td>
-              </tr>
-            </table>
-            <!-- Pagging -->
-            <div class="pagging">
-              <div class="left">Showing 1-12 of 44</div>
-              <div class="right"> <a href="#">Previous</a> <a href="#">1</a> <a href="#">2</a> <a href="#">3</a> <a href="#">4</a> <span>...</span> <a href="#">Next</a> <a href="#">View all</a> </div>
-            </div>
-            <!-- End Pagging -->
-          </div>
-          <!-- Table -->
-        </div>
-        <!-- End Box -->
         <!-- Box -->
         <div class="box">
           <!-- Box Head -->
@@ -201,13 +125,6 @@
             </table>
           </div>
           <!-- Table -->
-
-            <!-- Form Buttons -->
-            <div class="buttons" style="cursor: pointer; cursor: hand;"  onclick="window.open('pop_up.html', 'poop', 'height=857,width=857,modal=yes,alwaysRaised=yes');" >
-              <input type="button" class="button" value="View all status">
-            </div>
-            <!-- End Form Buttons -->
-          </form>
         </div>
         <!-- End Box -->
       </div>
@@ -222,13 +139,23 @@
           </div>
           <!-- End Box Head-->
           <div class="box-content"> 
-            <a href="#" class="start-button" onclick="startInstance('primaria')"><span>START</span></a>
+            <a id="start-button" href="#" class="start-button"><span>START</span></a>
             <div class="cl">&nbsp;</div>
-            <a href="#" class="stop-button" onclick="stopInstance('primaria')"><span>STOP</span></a>
+            <a id="stop-button"  href="#" class="stop-button"><span>STOP</span></a>
             <div class="cl">&nbsp;</div>
-            <div id="sem-green" style=" position:relative; width:124px; height:37px; display:none"></div>
-            <div id="sem-yellow" style="position:relative; width:124px; height:37px; display:inherit;"></div>
-            <div id="sem-red" style="position:relative;  width:124px; height:37px; display:none;"></div>
+            <div id="semaphore"
+                 style="position:relative; display: inherit; width:
+                 124px; height: 37px">
+              <div id="sem-yellow" 
+                   style="position:absolute; top: 0px; left: 0px;
+                   width:124px; height:37px; dispplay: inherit;"></div>
+              <div id="sem-red" 
+                   style="position:absolute; top: 0px; left: 0px;
+                   width:124px; height:37px; display: none;"></div>
+              <div id="sem-green" 
+                   style="position:absolute; top: 0px; left: 0px;
+                   width:124px; height:37px; display: none;"></div>
+            </div>
             <div class="cl">&nbsp;</div>
           </div>
         </div>

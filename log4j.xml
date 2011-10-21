@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+  <appender name="fileAppender" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="file" value="cbot.log"/>
+    <param name="append" value="true"/>
+    <param name="datePattern" value="'.'yyyy-MM"/>
+    <layout class="org.apache.log4j.TTCCLayout">
+      <param name="dateFormat" value="yyyy/MM/dd HH:mm:ss.SSS"/>
+    </layout>
+  </appender>
+
+  <appender name="consola" class="org.apache.log4j.ConsoleAppender">
+    <layout class="org.apache.log4j.TTCCLayout">
+      <param name="dateFormat" value="yyyy/MM/dd HH:mm:ss.SSS"/>
+    </layout>
+    <!--layout class="org.apache.log4j.HTMLLayout"/-->
+  </appender>
+
+  <appender name="mail" class="org.apache.log4j.net.SMTPAppender">
+    <param name="SMTPHost" value="mail.interware.com.mx"/>
+    <param name="from" value="amancilla@interware.com.mx"/>
+    <param name="to" value="fgerard@interware.com.mx"/>
+    <param name="subject" value="Error aca en la maquina"/>
+    <layout class="org.apache.log4j.TTCCLayout">
+      <param name="dateFormat" value="yyyy/MM/dd HH:mm:ss.SSS"/>
+    </layout>
+  </appender>
+
+  <logger name="mx.interware.util.basic" additivity="true">
+    <level value="error"/>
+  </logger>
+
+  <root>
+    <priority value="debug"/>
+    <appender-ref ref="fileAppender"/>
+    <appender-ref ref="consola"/>
+    <!--appender-ref ref="mail"/-->
+  </root>
+
+
+</log4j:configuration>

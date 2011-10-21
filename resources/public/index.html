@@ -1,0 +1,202 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>e-Robot</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="css/style.css" type="text/css"
+      media="all">
+<script src="/js/jquery-1.6.4.min.js" type="text/javascript"></script>
+<script src="/js/cbot.js" type="text/javascript"></script>
+</head>
+<body>
+<!-- Header -->
+<div id="header">
+  <div class="shell">
+    <!-- Logo + Top Nav -->
+    <div id="top">
+    <img src="images/logo-e-Robot.png" width="124" height="39" alt="e-robot"></div>
+    <!-- End Logo + Top Nav -->
+  </div>
+</div>
+<!-- End Header -->
+<!-- Container -->
+<div id="container">
+  <div class="shell">
+    <!-- Main -->
+    <div id="main">
+      <div class="cl">&nbsp;</div>
+      <!-- Content -->
+      <div id="content">
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2 class="left">Diagrama</h2>
+            <div id="thump" class="right" style="position:relative; display:inher"> 
+              <img src="images/thumb-up.png"  id="thumb-up" style="position:relative; display:inherit; padding-top:5px" />
+              <img src="images/thumb.png"  id="thumb-down" style="position:relative; display:none; padding-top:5px"/>
+            </div>
+            <div class="right">
+            </div>
+          </div>
+          <!-- End Box Head -->
+          <!-- CBOT -->
+          <div id="states" style="position:relative;">
+            <img src="/cbotimg/WEB" />
+            <div id="mark" style="position: absolute; left: 0; top: 0;
+                                  width: 50px; height: 50px;">
+              <div id="runimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="waitimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="stopimg" style="position: relative; display: inherit; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+            </div>  
+          </div>
+          <!-- End CBOT -->
+          <!-- Form Buttons -->
+          <div class="buttons" >
+             
+          </div>
+            <!-- End Form Buttons -->
+        </div>
+        <!-- End Box -->
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2>Status</h2>
+          </div>
+          <!-- End Box Head -->
+          <!-- Table -->
+          <div class="table">
+            <table class="status" width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <th width="9%">State</th>
+                <th width="61%">Result</th>
+                <th width="16%">When</th>
+                <th width="13%">Delta</th>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.0">State 0</td>
+                <td class="status" id="status.result.0">Result 0</td>
+                <td class="status" id="status.when.0">When 0</td>
+                <td class="status" id="status.delta.0">Delt 0</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.1">State 1</td>
+                <td class="status" id="status.result.1">Result 1</td>
+                <td class="status" id="status.when.1">When 1</td>
+                <td class="status" id="status.delta.1">Delt 1</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.2">State 2</td>
+                <td class="status" id="status.result.2">Result 2</td>
+                <td class="status" id="status.when.2">When 2</td>
+                <td class="status" id="status.delta.2">Delt 2</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.3">State 3</td>
+                <td class="status" id="status.result.3">Result 3</td>
+                <td class="status" id="status.when.3">When 3</td>
+                <td class="status" id="status.delta.3">Delt 3</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.4">State 4</td>
+                <td class="status" id="status.result.4">Result 4</td>
+                <td class="status" id="status.when.4">When 4</td>
+                <td class="status" id="status.delta.4">Delt 4</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.5">State 5</td>
+                <td class="status" id="status.result.5">Result 5</td>
+                <td class="status" id="status.when.5">When 5</td>
+                <td class="status" id="status.delta.5">Delt 5</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.6">State 6</td>
+                <td class="status" id="status.result.6">Result 6</td>
+                <td class="status" id="status.when.6">When 6</td>
+                <td class="status" id="status.delta.6">Delt 6</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.7">State 7</td>
+                <td class="status" id="status.result.7">Result 7</td>
+                <td class="status" id="status.when.7">When 7</td>
+                <td class="status" id="status.delta.7">Delt 7</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.8">State 8</td>
+                <td class="status" id="status.result.8">Result 8</td>
+                <td class="status" id="status.when.8">When 8</td>
+                <td class="status" id="status.delta.8">Delt 8</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.9">State 9</td>
+                <td class="status" id="status.result.9">Result 9</td>
+                <td class="status" id="status.when.9">When 9</td>
+                <td class="status" id="status.delta.9">Delt 9</td>
+              </tr>
+            </table>
+          </div>
+          <!-- Table -->
+
+            <!-- Form Buttons -->
+            <div class="buttons" >
+            </div>
+            <!-- End Form Buttons -->
+        </div>
+        <!-- End Box -->
+      </div>
+      <!-- End Content -->
+      <!-- Sidebar -->
+      <div id="sidebar">
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2>Control center</h2>
+          </div>
+          <!-- End Box Head-->
+          <div class="box-content"> 
+          	<!-- Sort -->
+            <div class="swich"> 
+              <h3>Applications</h3>
+              <select class="field" id="applications">
+                <option value="" id="application">Application1</option>
+                <option value="" id="application">Application2</option>
+              </select>
+              <h3>Instance</h3>
+              <select class="field" id="instances">
+
+              </select>
+            </div>
+            <div class="cl">&nbsp;</div>
+            <!-- End Sort -->
+            <a href="#" id="start-button" class="start-button"><span>START</span></a>
+            <div class="cl">&nbsp;</div>
+            <a href="#" id="stop-button" class="stop-button"><span>STOP</span></a>
+            <div class="cl">&nbsp;</div>
+            <div class="buttons" >
+              <input id="resume-msg" name="resume-msgx"  type="text">
+              <input id="resume-button" type="button" class="button" value="Resume">
+            </div>
+            <div class="cl">&nbsp;</div>
+          </div>
+        </div>
+        <!-- End Box -->
+      </div>
+      <!-- End Sidebar -->
+      <div class="cl">&nbsp;</div>
+    </div>
+    <!-- Main -->
+  </div>
+</div>
+<!-- End Container -->
+<!-- Footer -->
+<div id="footer">
+  <div class="shell"> <span class="left">© 2011 InterWare de México S.A. de C.V. / e-Robot</span> <span class="right"> Design by <a href="http://www.interware.com.mx">interware.com.mx</a> </span> </div>
+</div>
+<!-- End Footer -->
+</body>
+</html>
