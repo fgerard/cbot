@@ -96,7 +96,9 @@
     (try
       (op context)
       (catch Exception e
-        (warn-exception :wrap-with-catch-to-string e (str op) context)
+        (if-not (log/enabled? :info)
+          (warn-exception :wrap-with-catch-to-string e (str op))
+          (warn-exception :wrap-with-catch-to-string e (str op) context))
 	(str (type e) ":" (.getMessage e))))))
 
 (defn wrap-with-delay

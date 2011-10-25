@@ -4,6 +4,7 @@
   (:require [clojure.tools.logging :as log]
             [clojure.data.json :as json]
             [mx.interware.cbot.ui :as ui]
+            [mx.interware.cbot.store :as store]
             [ring.util.response :as ring]))
 
 (defn index-page []
@@ -14,6 +15,9 @@
         inst-ks (into [] (factory nil))]
     (json/json-str inst-ks)))
 
+(defn app-conf [app]
+  (json/json-str (store/get-app (keyword app))))
+
 (defn send-cmd [app-name inst-name cmd params]
   (let [result (apply-cmd (keyword app-name) (keyword inst-name) cmd params)]
       (log/debug (str "RESULT:" result))
@@ -22,4 +26,10 @@
         (= cmd "stop") result 
         (= cmd "current-pos") (json/json-str result)
         (= cmd "resume") result)))
+
+
+(defn report-log []
+  (comment
+    (html5 [:table
+          (map (fn [l] [:tr [:td l]]) @debug-agent)])))
 

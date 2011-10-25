@@ -4,6 +4,7 @@ cbotGlobal.NV="unknown";
 cbotGlobal.lastUUID=cbotGlobal.NV;
 cbotGlobal.app=cbotGlobal.NV;
 cbotGlobal.inst=cbotGlobal.NV;
+cbotGlobal.firstLoaded=true;
 
 
 
@@ -42,7 +43,6 @@ function moveMark(x,y) {
   }
 }
 
-
 function setMarkImg(id) {
   jQuery("#mark > div").hide();
   jQuery(id).show();
@@ -57,11 +57,8 @@ function updateSemaphore(stop,awaiting) {
     setMarkImg("#runimg");
 }
 
-function startAnimation(clearingStats) {
+function startAnimation() {
   if (cbotGlobal.app!==cbotGlobal.NV && cbotGlobal.inst!==cbotGlobal.NV) {
-    if (clearingStats) {
-      clearStats();
-    }
     jQuery.ajax({
       url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
       data: {cmd: "current-pos",
@@ -74,25 +71,6 @@ function startAnimation(clearingStats) {
 function setIt(key,result) {
   var e=document.getElementById(key);
   e.innerHTML=result[key];
-}
-
-function setStats(info) {
-  var len=info.length-1;
-  for (i=0; i<info.length; i++) {
-    if (len>=0) {
-      $("#status.state."+i).text(info[len].state);
-      $("#status.result."+i).text(info[len].result);
-      $("#status.when."+i).text(info[len]["when"]);
-      $("#status.delta."+i).text(info[len]["delta-micro"]);
-      len-=1;
-    }
-    else {
-      $("#status.state."+i).text("");
-      $("#status.result."+i).text("");
-      $("#status.when."+i).text("");
-      $("#status.delta."+i).text("");
-    }
-  }
 }
 
 function clearStats() {
@@ -116,12 +94,6 @@ cbotGlobal.etiqueta[1]="result";
 cbotGlobal.etiqueta[2]="when";
 cbotGlobal.etiqueta[3]="delta-micro";
 
-
-var colori=0;
-var cc=[];
-cc[0]="red";
-cc[1]="white";
-
 function handler(resultx) {
   var thumbUp=$("#thumb-up");
   var thumbDn=$("#thumb-down");
@@ -140,11 +112,11 @@ function handler(resultx) {
     else {
       thumbUp.show();
     }
-    var resultIndex=0;//result.stats.info.length-1;
-    colori=(colori+1) % 2;
+    var resultIndex=0;
     var x=jQuery("table.status").find("tr").each(function (i) {
       if (i>0) {
         $(this).find("td").each(function (j) {
+        //if (resultIndex<result["stats"]["info"].length
           if (resultIndex<result.stats.info.length) { 
             $(this).text(result.stats.info[resultIndex][cbotGlobal.etiqueta[j]]);
           }
@@ -156,17 +128,16 @@ function handler(resultx) {
       }
     });
 
-    //setStats(result.stats.info);
     moveMark(xx,yy);
     if (!result["stop?"]) {
-      startAnimation(false);
+      startAnimation();
     }
   }
 }
 
 function instanceChange() {
   cbotGlobal.inst=jQuery("#instances option:selected").text();
-  startAnimation(true);
+  startAnimation();
 }
 
 function fillSelect(valStr,tagLabel,globalName,changeFunc,nextFunc) {
@@ -194,7 +165,14 @@ function fillSelect(valStr,tagLabel,globalName,changeFunc,nextFunc) {
 
 function fillInstances(instancesStr) {
   fillSelect(instancesStr,"#instances","inst",instanceChange,null );
-  startAnimation(true);
+  if (cbotGlobal.firstLoaded) {
+    cbotGlobal.firstLoaded=false;
+    applicationChange();
+    instanceChange();
+  }
+  else {
+    startAnimation();
+  }
 }
 
 function applicationChange() {
@@ -203,7 +181,7 @@ function applicationChange() {
     url: "/apps/"+app,
     success: function (instancesStr) {
       fillInstances(instancesStr);
-      startAnimation(true);
+      //startAnimation();
     }
   });
   cbotGlobal.app=app;
@@ -249,15 +227,18 @@ jQuery(document).ready(function() {
       alert("first you must select application and instance !");
     }
   });
-  jQuery("#mark").click(function () {startAnimation(false)});
-
+//  jQuery("#mark").click(function () {startAnimation()});
+/*
+  jQuery("#mark").on("mousedown", function (m) {
+    jQuery(this).startDrag(m,jQuery(this).getNinth(m));
+  }).on("mousemove","drag").on("mouseup","stopDrag");
+  */
   var apps=jQuery("#applications"); 
 
   apps.empty();   
   jQuery.ajax({
     url: "/apps",
     success: fillApplications});
-    
 });
 
 
@@ -266,7 +247,7 @@ function startInstance(instName) {
     url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
     data: {"cmd":"start"},
     success: function() {
-      startAnimation(false);  
+      startAnimation();  
     }
   });
   
@@ -277,7 +258,7 @@ function stopInstance(instName) {
     url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
     data: {"cmd":"stop"},
     success: function() {
-      startAnimation(false);  
+      startAnimation();  
     }
   });
 }
@@ -290,7 +271,7 @@ function resumeInstance(instName) {
     data: {"cmd":"resume",
            "msg":msg},
     success: function() {
-      startAnimation(false);
+      startAnimation();
     }
   });
 }

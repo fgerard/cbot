@@ -34,7 +34,7 @@
   </logger>
 
   <root>
-    <priority value="debug"/>
+    <priority value="warn"/>
     <appender-ref ref="fileAppender"/>
     <appender-ref ref="consola"/>
     <!--appender-ref ref="mail"/-->

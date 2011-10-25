@@ -65,7 +65,7 @@
           mins (to-zz (frx resto 60) 2) 
           resto (rds resto 60)
           hras (to-zz (frx resto 24) 2) 
-          dias (Math/floor (rds resto 24))]
+          dias (int (Math/floor (rds resto 24)))]
       (str dias " " hras ":" mins ":" secs "." milis))
     (.format formato-fecha delta)))
 
@@ -90,6 +90,7 @@
     (into {} (assoc (dissoc result :result) current (:result result)))
     {current result}))
 
+
 (defn get-cbot-value [cbot d-uuid d-timeout]
   (let [{uuid :uuid semaphore :semaphore} @cbot]
     (if (= (str uuid) d-uuid)
@@ -97,7 +98,8 @@
         (log/debug "timeout:" d-timeout " semaphore queue length:" (.getQueueLength semaphore))
         (let [acquired? (.tryAcquire semaphore d-timeout TimeUnit/MILLISECONDS)]
           (log/debug "value acquired? " acquired?))))
-    @cbot))
+    (let [result @cbot]
+      result)))
 
 (defn- delta-human [label]
   (if-let [prefix (re-find #".*-opr@" label)]
@@ -123,7 +125,7 @@
                           :stats (agent {:max-len stats
                                          :info (list)})
                           :uuid (UUID/randomUUID)
-                          :semaphore (java.util.concurrent.Semaphore. 0))) 
+                          :semaphore (java.util.concurrent.Semaphore. 0 true))) 
       (util/warn-exception-and-throw
        :Cbot-template.create-with-id-and-context
        (RuntimeException. "Only templates should be cloned !")
@@ -157,7 +159,7 @@
                 (do
                   (if (nil? next-state)
                     (util/log-info
-                     :warn :Cbot-template.exec :id id :current current :msg
+                     :info :Cbot-template.exec :id id :current current :msg
                      "State dosen't have a satisfying exit rule, send 'resume' with name of next state to continue!")
                     (util/log-info :info :Cbot-template.exec :id id :current current :msg "Awaiting restart for long-running operation"))
 	          (assoc cbot
@@ -217,18 +219,19 @@
               exec-func
               exec-cbot)))
 
-(defn- unlock-waiting-threads [cbot]
-  (send *agent* (fn [cbot]
-                  (if-let [semaphore (:semaphore cbot)]
-                    (let [q-len (.getQueueLength semaphore)]
-                      (.release semaphore q-len)))
-                  cbot)))
+(defn- unlock-waiting-threads [d-cbot]
+  (send-off d-cbot (fn [cbot]
+                        (if-let [semaphore (:semaphore cbot)]
+                          (let [q-len (.getQueueLength semaphore)]
+                            (log/error "releasing " q-len " waiting threads from queue of " (:id cbot) (:stop? cbot) (:awaiting? cbot))
+                            (.release semaphore q-len)))
+                        cbot)))
 
 (defn- exec-cbot [cbot]
   (try
     (let [next-cbot (exec cbot)
           send? (and (not (:stop? next-cbot)) (not (:awaiting? next-cbot)))]
-      (unlock-waiting-threads cbot)
+      (unlock-waiting-threads *agent*)
       (if send?
         (send *agent* (get-exec next-cbot)))
       next-cbot)
@@ -241,7 +244,7 @@
   (try
     (let [next-cbot (resume cbot result)
           send? (and (not (:stop? next-cbot)) (not (:awaiting? next-cbot)))]
-      (unlock-waiting-threads cbot)
+      (unlock-waiting-threads *agent*)
       (if send?
         (send *agent* (get-exec next-cbot)))
       next-cbot)
@@ -253,7 +256,8 @@
 (defn- stop-cbot [cbot]
   (try
     (let [next-cbot (stop cbot)]
-      (unlock-waiting-threads cbot)
+      (log/debug "stop-cbot !!! " (:stop? next-cbot) (:stop? cbot))
+      (unlock-waiting-threads *agent*)
       (util/log-info :info :stop-cbot :msg "cbot stoped !")
       next-cbot)
     (catch Exception e
@@ -263,7 +267,7 @@
 (defn- start-cbot [cbot]
   (try
     (let [next-cbot (start cbot)]
-      (unlock-waiting-threads cbot)      
+      (unlock-waiting-threads *agent*)      
       (util/log-info :info :start-cbot :id (:id next-cbot)
                      :current (:current next-cbot) :msg "cbot started !!!!")
       (if (not (.awaiting? next-cbot))
@@ -445,7 +449,7 @@
        (alter app-ctrl #(assoc % app-key factory))
        factory))))
 
-(defn get-cbot [app-key inst-key]
+(defn- get-cbot-old [app-key inst-key]
   (dosync
    (let [k (str app-key inst-key)]
      (if-let [cbot (@cbot-ctrl k)]
@@ -454,6 +458,13 @@
              cbot (factory inst-key)]
          (alter cbot-ctrl assoc k cbot)
          cbot)))))
+
+(def get-cbot
+  (memoize
+   (fn [app-key inst-key]
+     (let [factory (get-app-factory app-key)
+           cbot (factory inst-key)]
+       cbot))))
 
 (defmulti apply-cmd (fn [_ _ cmd & params] cmd))
 

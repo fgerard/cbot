@@ -24,6 +24,9 @@
 
   (GET "/apps/:app-name" [app-name]
        (app-instances app-name))
+
+  (GET "/conf/:app-name" [app-name]
+       (app-conf app-name))
   
   (GET "/apps/:app-name/:inst-name" [app-name inst-name cmd uuid timeout msg]
        (send-cmd app-name inst-name cmd {:uuid uuid :timeout (to-long timeout) :msg msg}))
@@ -32,6 +35,9 @@
        {:status 200
         :headers {"Content-type" "image/jpeg"}
         :body (java.io.ByteArrayInputStream. (create-jpg (keyword app))) })
+
+  (GET "/log" []
+       (report-log))
   
   (route/resources "/")
 
