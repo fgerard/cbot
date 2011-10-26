@@ -2,13 +2,14 @@
   (:use compojure.core
         mx.interware.cbot.web.views
         mx.interware.cbot.core
-        mx.interware.cbot.ui
+        
         [hiccup.middleware :only (wrap-base-url)])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [compojure.response :as response]
             [clojure.data.json :as json]
-            [ring.middleware.session :as session]))
+            [ring.middleware.session :as session]
+            [mx.interware.cbot.ui :as ui]))
 
 (defn to-long [n]
   (try
@@ -34,8 +35,11 @@
   (GET "/cbotimg/:app" [app]
        {:status 200
         :headers {"Content-type" "image/jpeg"}
-        :body (java.io.ByteArrayInputStream. (create-jpg (keyword app))) })
+        :body (java.io.ByteArrayInputStream. (ui/create-jpg (keyword app))) })
 
+  (GET "/operations" []
+         (get-operations))
+  
   (GET "/log" []
        (report-log))
   

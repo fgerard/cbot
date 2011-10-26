@@ -18,6 +18,9 @@
 (defn app-conf [app]
   (json/json-str (store/get-app (keyword app))))
 
+(defn get-operations []
+  (json/json-str ui/operations))
+
 (defn send-cmd [app-name inst-name cmd params]
   (let [result (apply-cmd (keyword app-name) (keyword inst-name) cmd params)]
       (log/debug (str "RESULT:" result))

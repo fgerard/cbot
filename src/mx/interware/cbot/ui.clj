@@ -384,10 +384,24 @@
           (.add vp opr-panel)
           (ss/pack! (.getParent sp)))))))
 
-(defmethod panel StateInfo [state]
-  (log/debug state)
-  (let [curr-opr (:opr (:conf-map state))
-        model (doto (DefaultComboBoxModel.)
+(def operations ["clojure-opr"
+                 "date-time-opr"
+                 "get-http-opr"
+                 "get-mail-opr"
+                 "human-opr"
+                 "log-opr"
+                 "no-opr"
+                 "post-http-opr"
+                 "print-context-opr"
+                 "print-msg-opr"
+                 "send-mail-opr"
+                 "sleep-opr"
+                 "socket-opr"
+                 "sql-read-opr"
+                 "switch-bad-opr"
+                 "switch-good-opr"])
+(comment
+  (doto (DefaultComboBoxModel.)
                 (.addElement "clojure-opr")
                 (.addElement "date-time-opr")
                 (.addElement "get-http-opr")
@@ -404,7 +418,13 @@
                 (.addElement "sql-read-opr")
                 (.addElement "switch-bad-opr")
                 (.addElement "switch-good-opr")
-                (.setSelectedItem curr-opr))
+                (.setSelectedItem curr-opr)))
+
+(defmethod panel StateInfo [state]
+  (log/debug state)
+  (let [curr-opr (:opr (:conf-map state))
+        model (doto (reduce  (fn [cb param] (.addElement cb param) cb) (DefaultComboBoxModel.) operations)
+                (.setSelectedItem curr-opr)) 
         sp (ss/scrollable  (ss/label :text "NO-OP"))
         opr-combo (ss/combobox :id :operation :model model :listen [:action (opr-panel-gen model sp)])
         panel (mig/mig-panel

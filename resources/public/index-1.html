@@ -42,7 +42,18 @@
           </div>
           <!-- End Box Head -->
           <!-- CBOT -->
-          <div id="states" style="position:relative;"></div>
+          <div id="states" style="position:relative;">
+            <img src="/cbotimg/WEB" />
+            <div id="mark" style="position: absolute; left: 0; top: 0;
+                                  width: 50px; height: 50px;">
+              <div id="runimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="waitimg" style="position: relative; display: none; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+              <div id="stopimg" style="position: relative; display: inherit; left: 40px;
+                                      top: 0px; width: 40px; height: 40px;"></div>
+            </div>  
+          </div>
           <!-- End CBOT -->
           <!-- Form Buttons -->
           <div class="buttons" >
@@ -171,28 +182,6 @@
               <input id="resume-msg" name="resume-msgx"  type="text">
               <input id="resume-button" type="button" class="button" value="Resume">
             </div>
-            <div class="cl">&nbsp;</div>
-          </div>
-        </div>
-        <!-- End Box -->
-      </div>
-      <!-- End Sidebar -->
-<!-- Sidebar -->
-      <div id="sidebar">
-        <!-- Box -->
-        <div class="box">
-          <!-- Box Head -->
-          <div class="box-head">
-            <h2>State capture</h2>
-          </div>
-          <!-- End Box Head-->
-          <div class="box-content">
-            <!-- End Sort -->
-            <select class="field" id="operations"></select>
-            <div class="cl">&nbsp;</div><br/>
-            <input class="field" id="state-name"  type="text">
-            <div class="cl">&nbsp;</div><br/>
-            <a href="#" id="add-state" class="start-button"><span>Add</span></a>
             <div class="cl">&nbsp;</div>
           </div>
         </div>
