@@ -5,8 +5,12 @@ cbotGlobal.lastUUID=cbotGlobal.NV;
 cbotGlobal.app=cbotGlobal.NV;
 cbotGlobal.inst=cbotGlobal.NV;
 cbotGlobal.firstLoaded=true;
-cbotGlobal.states=[];
-cbotGlobal.idx2key={};
+cbotGlobal.states={};
+cbotGlobal.idx2key=[];
+
+cbotGlobal.lastUUID="unknown";
+cbotGlobal.lastState=null;
+
 
 cbotGlobal.etiqueta=[];
 cbotGlobal.etiqueta[0]="state";
@@ -89,48 +93,76 @@ function fillOperations(oprs) {
   fillSelect(oprs,"#operations");
 }
 
-function dragStateStart() {
-  var g=null;
-  if (!isNaN(this.idx)) {
-    g=cbotGlobal.states[this.idx];
+function each(set,fun) {
+  var i;
+  for (i=0;i<set.length;i++) {
+    fun(set[i]);
   }
-  if (g) {
-    var i;
-    for (i=0; i<g.items.length;i++) {
-      g[i].ox=g[i].attr("x");
-      g[i].oy=g[i].attr("y");
+}
+
+function removeArrows(state,otherKey) {
+  for (i=0; i<state.statesOut.length; i++) {
+    if (state.statesOut[i]===otherKey || otherKey==="*") {
+      each(state.arrowsOut[i],function(elem){elem.remove()});
+      state.tipsOut[i].remove();
     }
+  }  
+}
+
+function dragStateStart() {
+  var state=null;
+  if (!isNaN(this.idx)) {
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.idx]];
+  }
+  if (state) {
+    var i;
+    for (i=0; i<state.r_t_i_set.items.length;i++) {
+      state.r_t_i_set[i].ox=state.r_t_i_set[i].attr("x");
+      state.r_t_i_set[i].oy=state.r_t_i_set[i].attr("y");
+    }
+//desconectar elemento
+    removeArrows(state,"*");
+    each(state.statesIn,function (name) {
+      var other=cbotGlobal.states[name];
+      removeArrows(other,state.key);
+    });
   }
 }
 
 function dragStateStop() {
-  var g=null;
+  var state=null;
   if (!isNaN(this.idx)) {
-    g=cbotGlobal.states[this.idx];
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.idx]];
   }
-  if (g) {
+  if (state) {
     var i;
-    for (i=0; i<g.items.length;i++) {
-      delete(g[i].ox);
-      delete(g[i].oy);
+    for (i=0; i<state.r_t_i_set.items.length;i++) {
+      delete(state.r_t_i_set[i].ox);
+      delete(state.r_t_i_set[i].oy);
     }
-    connectStates(cbotGlobal.conf);
+    cbotGlobal.conf.states[state.conf_idx].flow.x=state.r_t_i_set[0].attrs.x;
+    cbotGlobal.conf.states[state.conf_idx].flow.y=state.r_t_i_set[0].attrs.y;
+    reConnectStates(state,"*");
+    each(state.statesIn,function(name) {
+      var other=cbotGlobal.states[name];
+      reConnectStates(other,state.key);
+    });
   }
 }
 
 function dragStateMove(dx,dy) {
   var g=null;
   if (!isNaN(this.idx)) {
-    g=cbotGlobal.states[this.idx];
+    g=cbotGlobal.states[cbotGlobal.idx2key[this.idx]];
   }
   if (g) {
     var x;
-    for (x=0; x<g.items.length; x++) {
-      var obj=g[x];
+    for (x=0; x<g.r_t_i_set.items.length; x++) {
+      var obj=g.r_t_i_set[x];
       obj.attr({ x: obj.ox + dx, y: obj.oy + dy });
     }
   }
-  connectStates(cbotGlobal.conf);
+  //connectStates(cbotGlobal.conf);
 }
 
 
@@ -165,7 +197,9 @@ jQuery(document).ready(function() {
       var stateOpr=jQuery("#operations option:selected").text();
       var newState={flow: {x:500,y:300,connect:[]}, key:stateName,
                     "conf-map":{opr: stateOpr, conf: []}};
-      buildState(newState);
+
+      //falta aumentar el nuevo al conf global!!!!! 
+      buildState(cbotGlobal.conf.states.length,newState);
     }
   });
 
@@ -224,10 +258,7 @@ function resumeInstance(instName) {
 
 ////////////////////////////////////////////////////////
 
-cbotGlobal.states={};
-cbotGlobal.lastUUID="unknown";
 
-cbotGlobal.lastState=null;
 
 Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
     var angle = Math.atan2(x1-x2,y2-y1);
@@ -242,7 +273,7 @@ Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
     return [linePath,arrowPath];
 }
 
-function buildState(state) {
+function buildState(index,state) {
   var txt=cbotGlobal.workspace.text(75,50,state.key);
   var icono=cbotGlobal.workspace.image("/images/"+state["conf-map"].opr+".gif",40,50,15,15);
   var g=cbotGlobal.workspace.set(txt,icono);
@@ -252,15 +283,22 @@ function buildState(state) {
              "stroke-width": 3,
              "fill": "#bbbbbb"}).toBack();  
   g=cbotGlobal.workspace.set(rect,txt,icono);//.data("dim",rect.getBBox());
-  g.key=state.key;
-  g.bbox=g.getBBox();
-  cbotGlobal.states[g.key]=[g,state];
+  
   g.animate({x:state.flow.x, y:state.flow.y},2000,"bounce",function () {
     this[1].animate({x: this[1].attrs.x+15+bbox.width/2,y: this[1].attrs.y+18},1000,"bounce").toFront();
     this[2].animate({x: this[2].attrs.x+4,y: this[2].attrs.y+8},1000,"bounce").toFront();
   });
-  rect.idx=cbotGlobal.states.length;
-  cbotGlobal.states.push(g);
+  rect.idx=cbotGlobal.idx2key.length;//le pegamos su indice al rect
+  //para el drag!!
+  cbotGlobal.idx2key.push(state.key);
+  cbotGlobal.states[state.key]={"key":state.key,
+                                "r_t_i_set": g, 
+                                "conf_idx": index, 
+                                "statesOut": [],
+                                "arrowsOut": [],
+                                "tipsOut": [],
+                                "statesIn": []};//statesIn los nombres
+                                                //de los estados que sales hacia ACA
   g.drag(dragStateMove,dragStateStart,dragStateStop);
   return g;
 }
@@ -271,57 +309,80 @@ function labelIt(x,y,txt,elem) {
   var rr=cbotGlobal.workspace.rect(bbox.x-2,bbox.y-2,bbox.width+4,bbox.height+4);
   rr.attr({fill: "#fff"});
   var tip=cbotGlobal.workspace.set(rr,condition);
-  tip.attr({opacity: 0});    
-  elem.hover(function() {tip.animate({opacity: 1}, 500); tip.toFront();},
+  tip.attr({opacity: 0}).toFront();    
+  elem.hover(function() {tip.animate({opacity: 1}, 500)},
              function() {tip.animate({opacity: 0}, 500)});
   return tip;
 }
 
-function connectStates(conf) {
+function connectUsing(index,state,other,outNum,tipTxt) {
+  pt=[state.r_t_i_set[0].attrs.x+state.r_t_i_set[0].attrs.width/2,
+      state.r_t_i_set[0].attrs.y+state.r_t_i_set[0].attrs.height/2,
+      other.r_t_i_set[0].attrs.x+other.r_t_i_set[0].attrs.width/2,         
+      other.r_t_i_set[0].attrs.y+other.r_t_i_set[0].attrs.height/2]
+
+  arr=cbotGlobal.workspace.arrow(pt[0],pt[1],pt[2],pt[3],4);
+  var tip=labelIt((pt[0]+pt[2])/2,
+                  (pt[1]+pt[3])/2,
+                  outNum+" ["+tipTxt+"]",
+                  state.r_t_i_set);
+  if (index<0) {
+    state.statesOut.push(other.key);
+    state.arrowsOut.push(arr);
+    other.statesIn.push(state.key);
+    state.tipsOut.push(tip);
+  }
+  else {
+    state.arrowsOut[index]=arr;
+    state.tipsOut[index]=tip;
+    
+  }
+}
+
+function reConnectStates(state,otherName) {
+  var i;
+  for (i=0;i<state.statesOut.length;i++) {
+    var other=cbotGlobal.states[state.statesOut[i]];
+    if (other.key===otherName || otherName==="*") {
+      var tipTxt=cbotGlobal.conf.states[state.conf_idx].flow.connect[i*2+1]!==undefined?
+        cbotGlobal.conf.states[state.conf_idx].flow.connect[i*2+1]:"default";
+      connectUsing(i,state,other,i+1,tipTxt)
+    }
+  }
+}
+
+function connect(state,other,outNum,tipTxt) {
+  connectUsing(-1,state,other,outNum,tipTxt);
+}
+
+function connectStates() {
   var i,j;
   var state,other;
   var connectArr;
   var arr;
   var pt;
-  for (i=0; i<conf.states.length; i+=1) {
-    state=cbotGlobal.states[conf.states[i].key];
-    if (state[1].flow.arrows) {
-      for (j=0; j<state[1].flow.arrows.length; j+=1) {
-        arr=state[1].flow.arrows[j];
+  for (i=0; i<cbotGlobal.conf.states.length; i+=1) {
+    state=cbotGlobal.states[cbotGlobal.conf.states[i].key];
+/*
+    if (state.arrowsOut) {
+      for (j=0; j<state.arrowsOut.length; j+=1) {
+        arr=state.arrowsOut[j];
         arr[0].remove();
         arr[1].remove();
       }
     }
-    if (state[1].flow.tips) {
-      for (j=0; j<state[1].flow.tips.length; j+=1) {
-        arr=state[1].flow.tips[j];
+    if (state.tipsOut) {
+      for (j=0; j<state.tipsOut.length; j+=1) {
+        arr=state.tipsOut[j];
         arr[0].remove();
         arr[1].remove();
       }
     }
-    state[1].flow.arrows=[];
-    state[1].flow.tips=[];
-    connectArr=state[1].flow.connect;
+*/
+    connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
     for (j=0; j<connectArr.length; j+=2) {
       other=cbotGlobal.states[connectArr[j]];
-/*
-      pt=[state[1].flow.x+state[0].bbox.width/2,
-          state[1].flow.y+state[0].bbox.height/2,
-          other[1].flow.x+other[0].bbox.width/2,
-          other[1].flow.y+other[0].bbox.height/2]
-*/
-      pt=[state[0][0].attrs.x+state[0][0].attrs.width/2,
-          state[0][0].attrs.y+state[0][0].attrs.height/2,
-          other[0][0].attrs.x+other[0][0].attrs.width/2,
-          other[0][0].attrs.y+other[0][0].attrs.height/2]
-
-      arr=cbotGlobal.workspace.arrow(pt[0],pt[1],pt[2],pt[3],4);
-      state[1].flow.arrows.push(arr);
-      var eti=Math.floor((j+1)/2+1)+") ";
-      var tip=labelIt((pt[0]+pt[2])/2,
-              (pt[1]+pt[3])/2,
-              connectArr[j+1]!==undefined?eti+connectArr[j+1]:eti+"default",state[0]);
-      state[1].flow.tips.push(tip);
+      connect(state,other,Math.floor((j+1)/2+1),connectArr[j+1]!==undefined?connectArr[j+1]:"default");
     }
   }
   startMonitoring();
@@ -337,11 +398,12 @@ function buildWorkspace(conf) {
   var rWaiting=cbotGlobal.workspace.image("/images/robot-waiting.gif",40,50,15,15).toFront().attr({opacity: 0});  
   var robot=cbotGlobal.workspace.set(rStart,rStop,rWaiting);
   cbotGlobal.robot=robot;
-  cbotGlobal.states=[];
+  cbotGlobal.states={};
+  cbotGlobal.idx3key=[];
   for (i=0; i<conf.states.length; i+=1) {
-    buildState(conf.states[i]);
+    buildState(i,conf.states[i]);
   }
-  setTimeout(function() {connectStates(conf)},3000);
+  setTimeout(function() {connectStates()},3000);
 }
 
 function startMonitoring() {
@@ -357,7 +419,7 @@ function startMonitoring() {
 function showRobot(idx) {
   var i;
   if (cbotGlobal.robot !== undefined) {
-    if (cbotGlobal.robot[idx].attrs.opacity!==1 || true) {
+    if (cbotGlobal.robot[idx].attrs.opacity!==1) { // || true
       for (i=0; i<3; i+=1) {
         cbotGlobal.robot[i].attr({opacity: 0});
       }
@@ -367,6 +429,7 @@ function showRobot(idx) {
 }
 
 function handler1(result) {
+  if (cbotGlobal.states.length === 0) return;
   var thumbUp=$("#thumb-up");
   var thumbDn=$("#thumb-down");
   if (result.app === cbotGlobal.app && result.inst === cbotGlobal.inst) {
@@ -392,18 +455,18 @@ function handler1(result) {
     }
 
     if (cbotGlobal.lastState !== null) {  
-      cbotGlobal.lastState[0].animate({"fill": "#bbbbbb", 
+      cbotGlobal.lastState.r_t_i_set[0].animate({"fill": "#bbbbbb", 
                                      "stroke-width": 3,
                                      "stroke": "#007eaf", 
                                      },1000);
     }
-    cbotGlobal.lastState=cbotGlobal.states[result.current][0];
-    cbotGlobal.lastState[0].animate({fill: "#eeeeee", 
+    cbotGlobal.lastState=cbotGlobal.states[result.current];
+    cbotGlobal.lastState.r_t_i_set[0].animate({fill: "#eeeeee", 
                                    stroke: "#c42530",
                                    "stroke-width": 3},1000);    
 
-    var xx=parseInt(result.x,10);
-    var yy=parseInt(result.y,10);  
+    var xx=parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.x,10); //
+    var yy=parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.y,10); //
     
 
     cbotGlobal.robot.animate({x: xx+30,y: yy},500);
