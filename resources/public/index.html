@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="css/style.css" type="text/css"
       media="all">
 <script src="/js/jquery-1.6.4.min.js" type="text/javascript"></script>
+<script src="/js/jquery.simpledialog.0.1.js" type="text/javascript"></script>
 <script src="/js/raphael.js" type="text/javascript"></script>
 <script src="/js/cbot.js" type="text/javascript"></script>
 </head>
@@ -32,7 +33,7 @@
         <div class="box">
           <!-- Box Head -->
           <div class="box-head">
-            <h2 class="left">Diagrama</h2>
+            <h2 class="left">State diagram</h2>
             <div id="thump" class="right" style="position:relative; display:inher"> 
               <img src="images/thumb-up.png"  id="thumb-up" style="position:relative; display:inherit; padding-top:5px" />
               <img src="images/thumb.png"  id="thumb-down" style="position:relative; display:none; padding-top:5px"/>
@@ -151,24 +152,29 @@
           <div class="box-content"> 
           	<!-- Sort -->
             <div class="swich"> 
-              <h3>Applications</h3>
+              <h4>Applications</h4>
               <select class="field" id="applications">
                 <option value="" id="application">Application1</option>
                 <option value="" id="application">Application2</option>
               </select>
-              <h3>Instance</h3>
+              <h4>Instance</h4>
               <select class="field" id="instances">
-
               </select>
             </div>
             <div class="cl">&nbsp;</div>
             <!-- End Sort -->
-            <a href="#" id="start-button" class="start-button"><span>START</span></a>
+            <input id="start-monitor-button" type="button" class="button" value="Start-monitor"/>
+            <input id="stop-monitor-button" type="button" class="button" value="Stop-monitor"/>
+            <div class="swich" id="start-stop">
+              <input id="start-button" type="button" class="button" style="display:inherit" value="Start"/>
+              <input id="stop-button" type="button" class="button" style="display:none" value="Stop"/>
+            </div>
+            <p id="result-str"></p><br/>
             <div class="cl">&nbsp;</div>
-            <a href="#" id="stop-button" class="stop-button"><span>STOP</span></a>
-            <div class="cl">&nbsp;</div>
-            <div class="buttons" >
-              <input id="resume-msg" name="resume-msgx"  type="text">
+            <div id="resume" class="resume" style="display:inherit">
+              <!--br/-->
+              <p>Response</p>
+              <input id="resume-msg" name="resume-msg"  type="text">
               <input id="resume-button" type="button" class="button" value="Resume">
             </div>
             <div class="cl">&nbsp;</div>
@@ -179,24 +185,47 @@
       <!-- End Sidebar -->
 <!-- Sidebar -->
       <div id="sidebar">
-        <!-- Box -->
+        
         <div class="box">
-          <!-- Box Head -->
+          
           <div class="box-head">
             <h2>State capture</h2>
           </div>
-          <!-- End Box Head-->
-          <div class="box-content">
-            <!-- End Sort -->
+          
+          <div id="state-create" class="box-content" style="display:inherit">
             <select class="field" id="operations"></select>
-            <div class="cl">&nbsp;</div><br/>
-            <input class="field" id="state-name"  type="text">
-            <div class="cl">&nbsp;</div><br/>
-            <a href="#" id="add-state" class="start-button"><span>Add</span></a>
             <div class="cl">&nbsp;</div>
+            <input class="field" id="state-name"  type="text">
+            <div class="cl">&nbsp;</div>
+            <table><tr><td> 
+            <input id="add-state" name="add-state"  type="button" value="Add"/>
+            </td><td>
+            
+            <input id="save-states" name="save-states" type="button"  value="Save"/>
+            </td>
+            </tr></table>
+            <div class="cl">&nbsp;</div>
+            <a href="#" id="arrowDialog" rel="arrowForm">show dialog!</a> 
+          </div>
+          <div id="state-edit" class="box-content" style="display:none">
+            <table>
+              <tr><td>Key</td><td id="state-key"></td></tr>
+              <tr><td>Flow</td>
+                  <td>
+                    <table>
+                      <tr><td>X</td><td id="state-x"></td></tr>
+                      <tr><td>Y</td><td id="state-y"></td></tr>
+                      <tr><td>Connect</td><td id="state-connect"></td></tr>
+                    </table>
+                  </td>
+              </tr>
+            </table>
           </div>
         </div>
-        <!-- End Box -->
+        
+        </div>
+        
+
       </div>
       <!-- End Sidebar -->
       <div class="cl">&nbsp;</div>
@@ -210,5 +239,33 @@
   <div class="shell"> <span class="left">© 2011 InterWare de México S.A. de C.V. / e-Robot</span> <span class="right"> Design by <a href="http://www.interware.com.mx">interware.com.mx</a> </span> </div>
 </div>
 <!-- End Footer -->
+
+<!--div id="arrowDialog" rel="arrowForm"/-->
+
+<!-- content -->
+<div style="display:none;" id="arrowForm">
+  <h3>Rule</h3>
+  <form id="regexpForm">
+    RegExp <input type="text"  value=".*" />
+  </form>
+  <br/>
+  <p><a href="#" class="close">Close</a></p>
+</div>
+
+<!--
+$('#sdHc3').simpleDialog({
+  showCloseLabel: false,
+  open: function () {
+    $('#checkboxStatus').html('');
+  },
+  close: function () {
+    var c = [];
+    $('#checkboxForm :checkbox:checked').each(function () {
+      c.push($(this).val());
+    });
+    $('#checkboxStatus').html('Checked ' + c.join(', ') + '.').show();
+  }
+});
+-->
 </body>
 </html>

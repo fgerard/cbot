@@ -98,7 +98,7 @@ h3 a{ text-decoration: none; }
 	background-color: #EFF3FF;
 }
 
-.box { background:#fbfcfc; height:100%; padding:1px; margin-bottom:20px; }
+.box { background:#fbfcfc; height:20%; padding:1px; margin-bottom:10px; }
 .box-head {
 	background:#104362;
 	height:32px;

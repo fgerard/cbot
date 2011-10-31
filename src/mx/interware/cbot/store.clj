@@ -61,7 +61,7 @@
    (app-store-save)))
 
 (defn set-apps [apps-vec]
-  (println apps-vec)
+  (log/debug apps-vec)
   (dosync
    (doseq [vv apps-vec]
      (alter app-store (alter-fun (vv 0) (vv 1))))

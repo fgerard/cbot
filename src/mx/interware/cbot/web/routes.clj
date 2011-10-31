@@ -9,6 +9,7 @@
             [compojure.response :as response]
             [clojure.data.json :as json]
             [ring.middleware.session :as session]
+            ;;[ring.middleware.json-params :as rjson]
             [mx.interware.cbot.ui :as ui]))
 
 (defn to-long [n]
@@ -38,7 +39,10 @@
         :body (java.io.ByteArrayInputStream. (ui/create-jpg (keyword app))) })
 
   (GET "/operations" []
-         (get-operations))
+       (get-operations))
+
+  (POST "/store/:app-name" [app-name conf]
+        (json/json-str (app-save-conf app-name conf)))
   
   (GET "/log" []
        (report-log))
@@ -46,6 +50,8 @@
   (route/resources "/")
 
   (route/not-found "Page not found"))
+
+(comment (rjson/wrap-json-params))
 
 (def app
   (-> (session/wrap-session main-routes)

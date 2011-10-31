@@ -139,10 +139,11 @@
           (throw (java.lang.RuntimeException. (str "Cbot:" id " is running!")))
           (assoc cbot :stop? false)))
   (exec [cbot]
-        (util/debug-info :Cbot-template.exec :current current :stop? stop?)
+        (util/debug-info :Cbot-template.exec :current current :stop? stop? :keyword? (keyword? current) (keys states))
         (assert (and current states))
         (let [state (states current)
               now (. System currentTimeMillis)]
+          (util/debug-info :Cbot-template.exec2 :state state :current current)
           (if (and (not stop?) (not awaiting?))
             (let [t0 (System/currentTimeMillis)
                   opr-result (execute state state-values)
@@ -223,7 +224,7 @@
   (send-off d-cbot (fn [cbot]
                         (if-let [semaphore (:semaphore cbot)]
                           (let [q-len (.getQueueLength semaphore)]
-                            (log/error "releasing " q-len " waiting threads from queue of " (:id cbot) (:stop? cbot) (:awaiting? cbot))
+                            (log/debug "releasing " q-len " waiting threads from queue of " (:id cbot) (:stop? cbot) (:awaiting? cbot))
                             (.release semaphore q-len)))
                         cbot)))
 
@@ -315,9 +316,13 @@
   (Cbot-template.
    id true current true false states context 0 0
    (if (> inter-state-delay 0)
-     (#'util/wrap-with-delay #'exec-cbot inter-state-delay)
+     (fn [cbot]
+       (if-not (or (:stop? cbot) (:waiting? cbot)) (Thread/sleep inter-state-delay))
+       (exec-cbot cbot))
      #'exec-cbot)
    stats))
+
+(comment (#'util/wrap-with-delay #'exec-cbot inter-state-delay))
 
 (defn build-cbot-factory [id inter-state-delay parameters instances states starting-state stats]
   (let [template (create-cbot-template
@@ -345,19 +350,19 @@
   (opr/print-msg-opr conf))
 
 (defn- fix-number [n]
-  (if (nil? n)
-    0
-    (try
-      (let [nn (Integer/parseInt n)]
-        nn)
-      (catch NumberFormatException nfe
-        0))))
+  (cond
+   (nil? n) 0
+   (number? n) n
+   (and (string? n) (re-matches #"[0-9]+" n)) (Long/parseLong n)
+   :otherwise 0))
 
 (defn- wrap-opr [opr timeout retry-count retry-delay conf]
   (let [timeout timeout
         retry-count (fix-number retry-count)
         retry-delay (fix-number retry-delay)
-        f1 (if (not= (str timeout) "0") (util/wrap-with-timeout (opr conf) timeout) (opr conf)) 
+        f1 (if (not= (str timeout) "0")
+             (util/wrap-with-timeout (opr conf) timeout)
+             (opr conf)) 
         f2 (if (> retry-count 0)
              (util/try-times-opr f1 retry-count retry-delay)
              f1)]
@@ -405,15 +410,15 @@
         (= 1 (count v)) (state-name-flow (first v))
         :otherwise (re-flow v)))
 
-(defn state-factory [state-name {{opr-name :opr
+(defn state-factory [state-id {{opr-name :opr
                        timeout :timeout
                        retry-count :retry-count
                        retry-delay :retry-delay
                        conf :conf :as conf-map} :conf-map
                        {connect-vec :connect :as flow} :flow}]
-  (log/debug (str "state-name:"  state-name))
+  (log/debug (str "state-id:"  state-id))
   ;(Thread/sleep 5000)
-  (State. state-name (opr-factory opr-name timeout retry-count retry-delay conf) (flow-factory connect-vec)))
+  (State. state-id (opr-factory opr-name timeout retry-count retry-delay conf) (flow-factory connect-vec)))
 
 (def app-ctrl (ref {}))
 
@@ -424,6 +429,20 @@
 (defn apps []
   (store/get-app-names))
 
+(defn- transform-str [s]
+  (if (string? s)
+    (cond
+     (re-matches #":[A-Za-z0-9\?\-]+" s) (keyword (subs s 1))
+     (re-matches #"[0-9]+" s) (Long/parseLong s)
+     :otherwise s)
+    s))
+
+(defn- transform2run [info]
+  (cond
+   (map? info) (into {} (map (fn [[k v]] {k (transform2run v)}) info))
+   (vector? info) (into [] (map (fn [v] (transform2run v)) info))
+   :otherwise (transform-str info)))
+
 (defn create-app-factory [app-key]
   (let [app (store/get-app app-key)
         {interstate-delay :interstate-delay
@@ -432,14 +451,17 @@
          instances :instances
          pre-states :states} app]
     (let [states (into {}
-                       (map (fn [info] [(info :key) (state-factory (info :key) info)])
+                       (map (fn [info]
+                              (let [info-k (keyword (subs (info :key) 1))
+                                    run-info (transform2run info)]
+                                [info-k (state-factory info-k run-info)]))
                             pre-states))]
       (build-cbot-factory app-key
                           (Integer/parseInt interstate-delay)
                           parameters
                           instances
                           states
-                          (:key (first pre-states))
+                          (keyword (subs (:key (first pre-states)) 1)) 
                           (if stats (fix-number stats) 100)))))
 (defn get-app-factory [app-key]
   (if-let [factory (app-key @app-ctrl)]
@@ -498,6 +520,7 @@
             :app (name app-k)
             :inst (name inst-k)
             :uuid (str (:uuid cbot-value))
+            :request-uuid uuid
             :id (:id cbot-value)
             :current (:current cbot-value)
             :stop? (:stop? cbot-value)

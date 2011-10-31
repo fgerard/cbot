@@ -1062,25 +1062,52 @@
     (keyword (.substring s 1))
     s))
 
-(defn- convert2keys [m]
+(defn- convert2keys_OLD [m]
   (log/debug (str "convert2keys 1) " m))
   (let [mm (into {} (map (fn [k]
                   (let [v (k m)]
                     (log/trace (str (string? v) "," (vector? v) "," (map? v) ":" k "->" v))
                     [k (cond
                         (string? v) (str2key v)
-                        (vector? v) (into [] (map #(if (map? %) (convert2keys %) (str2key %)) v))
-                        (map? v) (convert2keys v)
+                        (vector? v) (into [] (map #(if (map? %) (convert2keys_OLD %) (str2key %)) v))
+                        (map? v) (convert2keys_OLD v)
                         :otherwise v)]))
                          (keys m)))]
     (log/debug (str "convert2keys 2) " mm))
     mm))
 
+(defn- transform2store [info]
+  (cond
+   (map? info) (into {} (map (fn [[k v]] {k (transform2store v)}) info))
+   (vector? info) (into [] (map (fn [v] (transform2store v)) info))
+   :otherwise (str info)))
+
+(comment (defn- convert2keys [m]
+  (log/debug (str "convert2keys 1) " m))
+  (let [mm (into {} (map (fn [k]
+                  (let [v (k m)]
+                    (log/trace (str (string? v) "," (vector? v) "," (map? v) ":" k "->" v))
+                    [k (cond
+                        (keyword? v) (str v)
+                        (string? v) v
+                        (vector? v) (into [] (map
+                                              #(if (map? %)
+                                                 (convert2keys %)
+                                                 (cond
+                                                  (keyword? %) (str %)
+                                                  (string? %) %
+                                                  :otherwise (str %))) v))
+                        (map? v) (convert2keys v)
+                        :otherwise v)]))
+                         (keys m)))]
+    (log/debug (str "convert2keys 2) " mm))
+    mm))) 
+
 (defn app-model2vec [model]
   (into [] (map
             (fn [idx]
               (let [app (.elementAt model idx)]
-                [(get-key app) (convert2keys (get-rest app))]))
+                [(get-key app) (transform2store (get-rest app))]))
             (range (.size model)))))
 
 (defn save [app-list]
@@ -1109,7 +1136,21 @@
                     (str (:interstate-delay v-map))
                     (into []
                           (map (fn [m]
-                                 (StateInfo. (:key m) (map-key2str (:conf-map m)) (:flow m)))
+                                 (let [flow (:flow m)
+                                       x (if (number? (:x flow)) (:x flow) (Integer/parseInt (:x flow))) 
+                                       y (if (number? (:y flow)) (:y flow) (Integer/parseInt (:y flow))) 
+                                       conn-v (:connect flow)]
+                                   (StateInfo.
+                                     (keyword (subs (:key m) 1)) 
+                                     (map-key2str (:conf-map m))
+                                     {:x x
+                                      :y y
+                                      :connect
+                                      (into []
+                                            (for [i (range (count conn-v))]
+                                              (if (even? i)
+                                                (keyword (subs (conn-v i) 1))
+                                                (conn-v i))))})))
                                (:states v-map)))
                     (map-into-keyval (:parameters v-map))
                     (into {} (map (fn [[k v]]

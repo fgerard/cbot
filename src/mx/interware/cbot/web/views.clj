@@ -18,8 +18,22 @@
 (defn app-conf [app]
   (json/json-str (store/get-app (keyword app))))
 
+(defn app-save-conf [app conf]
+  (let [appk (keyword app)
+        states-map (:states conf)
+        states (into [] (for [i (range (count states-map))] ((keyword (str i)) states-map)))
+        conf (assoc conf :states states)]
+    (store/set-app (keyword app) conf)
+    {"result" "ok"}))
+
 (defn get-operations []
   (json/json-str ui/operations))
+
+(defn- key2str [info]
+  (cond
+   (map? info) (into {} (map (fn [[k v]] {k (key2str v)}) info))
+   (vector? info) (into [] (map (fn [v] (key2str v)) info))
+   :otherwise (if (keyword? info) (str info) info)))
 
 (defn send-cmd [app-name inst-name cmd params]
   (let [result (apply-cmd (keyword app-name) (keyword inst-name) cmd params)]
@@ -27,7 +41,7 @@
       (cond
         (= cmd "start") result 
         (= cmd "stop") result 
-        (= cmd "current-pos") (json/json-str result)
+        (= cmd "current-pos") (json/json-str (key2str result))
         (= cmd "resume") result)))
 
 
