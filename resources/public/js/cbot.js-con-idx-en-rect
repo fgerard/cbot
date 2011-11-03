@@ -1,4 +1,4 @@
-// jsROBOT Viewer
+// jsROBTO Viewer
 // InterWare de Mexico, S.A. de C.V.
 // Felipe Gerard
 
@@ -8,7 +8,7 @@ cbotGlobal.lastUUID=cbotGlobal.NV;
 cbotGlobal.app=cbotGlobal.NV;
 cbotGlobal.inst=cbotGlobal.NV;
 cbotGlobal.states={};
-//cbotGlobal.idx2key=[];
+cbotGlobal.idx2key=[];
 cbotGlobal.counter=0;
 cbotGlobal.monitoring=true;
 
@@ -23,8 +23,6 @@ cbotGlobal.etiqueta[0]="state";
 cbotGlobal.etiqueta[1]="result";
 cbotGlobal.etiqueta[2]="when";
 cbotGlobal.etiqueta[3]="delta-micro";
-
-cbotGlobal.oprDiags={};
 
 cbotGlobal.lastUUID=localUUID();
 
@@ -152,20 +150,19 @@ function createPathStr(from,to) {
 }
 
 cbotGlobal.dragging=false;
-cbotGlobal.connecting=false;
 
 function dragStateStart(evt) {
-  if (cbotGlobal.dragging || cbotGlobal.connecting) return;
+  if (cbotGlobal.dragging) return;
   var state=null;
-  if (this.group!==undefined) {
+  if (!isNaN(this.group[0].idx)) {
     cbotGlobal.dragging=true;
-    state=cbotGlobal.states[this.group[0].key];
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
   }
   if (state) {
     removeGlobal("connectImage");
     removeGlobal("connectingPath");
     var i;
-    for (i=0; i<state.r_t_i_set.length;i++) {
+    for (i=0; i<state.r_t_i_set.items.length;i++) {
       state.r_t_i_set[i].ox=parseInt(state.r_t_i_set[i].attrs.x,10);
       state.r_t_i_set[i].oy=parseInt(state.r_t_i_set[i].attrs.y,10);
     }
@@ -195,14 +192,14 @@ function dragStateStart(evt) {
 }
 
 function dragStateStop() {
-  if (!cbotGlobal.dragging || cbotGlobal.connecting) return;
   var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
+  if (!isNaN(this.group[0].idx)) {
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
   }
   if (state) {
     var i;
-    for (i=0; i<state.r_t_i_set.length;i++) {
+    cbotGlobal.dragging=false;
+    for (i=0; i<state.r_t_i_set.items.length;i++) {
       delete(state.r_t_i_set[i].ox);
       delete(state.r_t_i_set[i].oy);
     }
@@ -215,19 +212,17 @@ function dragStateStop() {
       var other=cbotGlobal.states[name];
       reConnectStates(other,state.key);
     });
-    cbotGlobal.dragging=false;
   }
 }
 
 function dragStateMove(dx,dy) {
-  if (!cbotGlobal.dragging || cbotGlobal.connecting) return;
   var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
+  if (!isNaN(this.group[0].idx)) {
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
   }
   if (state) {
     var x;
-    for (x=0; x<state.r_t_i_set.length; x++) {
+    for (x=0; x<state.r_t_i_set.items.length; x++) {
       var obj=state.r_t_i_set[x];
       obj.attr({ x: obj.ox + dx, y: obj.oy + dy });
     }
@@ -309,7 +304,7 @@ Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
     var arrowPath = this.path("M" + cx + " " + cy + " L" + (cx - size) + " " 
                              + (cy - size) + " L" + (cx - size) + " " + (cy + size) 
                              + " L" + cx + " " 
-                             + cy ).attr("fill","black").rotate((90+angle),cx,cy).toBack();
+                             + cy ).attr("fill","black").rotate((90+angle),cx,cy);
     var linePath = this.path("M" + x1 + " " + y1 + " L" + x2 + " " + y2).toBack();
     return [linePath,arrowPath];
 }
@@ -337,39 +332,18 @@ function connectInConf(state,other,regExp) {
   var idx=state.conf_idx;
   var connectArr=cbotGlobal.conf.states[idx].flow.connect;
   var i;
-  if (connectArr.length===0) {
-    connectArr.unshift(other.key);
-  }
-  else {
-    connectArr.unshift(regExp);
-    connectArr.unshift(other.key);
-  }
+  connectArr.unshift(regExp);
+  connectArr.unshift(other.key);
 }
 
-function clearEvents() {
-  var state=cbotGlobal.states[":pagina"];
-  state.r_t_i_set.unmouseover(mouseIsOver);
-  state.r_t_i_set.unmouseout(mouseIsOut);
-  //removeArrows(state,"*");
-
-  //var i;
-  //for (i=0; i<state.arrowsOut.length;i++) {
-    //state.arrowsOut[i][0].remove();
-  //}
-}
-
-function connectingStart(x,y,event) {
-  if (cbotGlobal.connecting) return;
-  cbotGlobal.connecting=true;
-
+function connectingStart() {
   var bbox=cbotGlobal.connectImageBBOX;
-  cbotGlobal.offsetX=event.offsetX-(bbox.x+bbox.width);
-  cbotGlobal.offsetY=event.offsetY-(bbox.y+bbox.height);
-  cbotGlobal.connectingPath=cbotGlobal.workspace.path("M"+(bbox.x+bbox.width)+" "+(bbox.y+bbox.height)); //+"l0 0"
+  cbotGlobal.offsetX=event.offsetX-(bbox.x+bbox.width/2);
+  cbotGlobal.offsetY=event.offsetY-(bbox.y+bbox.height/2);
+  cbotGlobal.connectingPath=cbotGlobal.workspace.path("M"+(bbox.x+bbox.width/2)+" "+(bbox.y+bbox.height/2)+"l0 0");
 }
 
 function connectingStop() {
-  cbotGlobal.workspace.renderfix(); 
   cbotGlobal.connectingPath.remove();
   if (cbotGlobal.otherState!==null) {
     var state=cbotGlobal.connectingState;
@@ -383,22 +357,19 @@ function connectingStop() {
       removeArrows(state,"*");
       state.statesOut.unshift(other.key);
       reConnectStates(state,"*");
-      other.statesIn.push(state.key);
     }  
   }
-  removeGlobal("otherGlow");
   cbotGlobal.connectingPath.remove();
   cbotGlobal.connectingPath=null;
   cbotGlobal.connectImage.remove();
   cbotGlobal.connectImage=null;
   cbotGlobal.connectImageBBOX=null;
   cbotGlobal.otherState=null;
-  cbotGlobal.connecting=false;
 }
 
 function connectingMove(dx,dy) {
   var bbox=cbotGlobal.connectImageBBOX;
-  cbotGlobal.connectingPath.attr({"path":"M"+(bbox.x+bbox.width)+" "+(bbox.y+bbox.height)+"l"+(dx+cbotGlobal.offsetX)+" "+(dy+cbotGlobal.offsetY)});
+  cbotGlobal.connectingPath.attr({"path":"M"+(bbox.x+bbox.width/2)+" "+(bbox.y+bbox.height/2)+"l "+(dx+cbotGlobal.offsetX)+" "+(dy+cbotGlobal.offsetY)});
 }
 
 function contains(arr,elem) {
@@ -432,7 +403,7 @@ function mouseIsOver() {
     if (cbotGlobal.connectingPath!==null) {
       if (cbotGlobal.connectImageBBOX!==this.group[0].getBBox()) {
         // estamos conectando y ahora sobre OTRO estado
-        cbotGlobal.otherState=cbotGlobal.states[this.group[0].key];
+        cbotGlobal.otherState=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
         removeGlobal("otherGlow");
         cbotGlobal.otherGlow=this.group[0].glow();
         return;
@@ -452,7 +423,7 @@ function mouseIsOver() {
   cbotGlobal.connectImage=p
   cbotGlobal.connectImageBBOX=bbox;
   cbotGlobal.connectImage.drag(connectingMove,connectingStart,connectingStop);
-  cbotGlobal.connectingState=cbotGlobal.states[this.group[0].key];
+  cbotGlobal.connectingState=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
 }
 
 function mouseIsOut() {
@@ -460,38 +431,6 @@ function mouseIsOut() {
     removeGlobal("otherGlow");
     cbotGlobal.otherState=null;
   }
-}
-
-function setTimeoutOpr(confState,div) {
-  div.find("#timeout").val(confState["conf-map"].timeout);
-  div.find("#retry-delay").val(confState["conf-map"]["retry-delay"]);
-  div.find("#retry-count").val(confState["conf-map"]["retry-count"]);
-}
-
-cbotGlobal.oprSetFunc={};
-
-cbotGlobal.oprSetFunc["sleep-opr"]=function (state,confState) {
-  var div=$("#sleep-oprDialog");
-  div.find("#state-name").val(state.key);
-  div.find("#delta").val(confState["conf-map"].conf.delta);
-}
-
-cbotGlobal.oprSetFunc["socket-opr"]=function(state,confState) {
-  var div=$("#socket-oprDialog");
-  div.find("#state-name").val(state.key);
-  setTimeoutOpr(confState,div);
-
-  div.find("#host").val(confState["conf-map"].conf.host);
-  div.find("#port").val(confState["conf-map"].conf.port);
-}
-
-
-function updateState() {
-  var state=cbotGlobal.states[this.group[0].key];
-  var confState=cbotGlobal.conf.states[state.conf_idx];
-  var opr=confState["conf-map"].opr;
-  cbotGlobal.oprSetFunc[opr](state,confState);
-  getDialog4Opr(opr).dialog("open");
 }
 
 function buildState(index,state) {  
@@ -510,9 +449,9 @@ function buildState(index,state) {
   g[2].attr({x: parseInt(g[2].attrs.x,10)+4,
              y: parseInt(g[2].attrs.y,10)+7}).toFront();
             
-//  rect.idx=cbotGlobal.idx2key.length;//le pegamos su indice al rect
-//  cbotGlobal.idx2key.push(state.key);
-  rect.key=state.key; 
+  rect.idx=cbotGlobal.idx2key.length;//le pegamos su indice al rect
+  cbotGlobal.idx2key.push(state.key);
+
 
 //  g[0].glower=g[0];
   g[0].group=g
@@ -530,8 +469,7 @@ function buildState(index,state) {
                                 "statesOut": [],
                                 "arrowsOut": [],
                                 "tipsOut": [],
-                                "statesIn": []//, "glowArrow":null
-                              };//statesIn los nombres
+                                "statesIn": []};//statesIn los nombres
                                                 //de los estados que salen hacia ACA
 
   g.drag(dragStateMove,dragStateStart,dragStateStop);
@@ -540,7 +478,6 @@ function buildState(index,state) {
   //g[0].hover(glowIcon,unGlowIcon);
   g.mouseover(mouseIsOver);
   g.mouseout(mouseIsOut);
-  g.dblclick(updateState);
 /*
   g.dblclick(function(){
     if (cbotGlobal.connectImage !== null) {
@@ -572,8 +509,6 @@ function labelIt(x,y,txt,elem) {
   return tip;
 }
 
-cbotGlobal.glowArrow=null;
-
 function connectUsing(index,state,other,outNum,tipTxt) {
   var pt=[parseInt(state.r_t_i_set[0].attrs.x,10)+state.r_t_i_set[0].attrs.width/2,
       parseInt(state.r_t_i_set[0].attrs.y,10)+state.r_t_i_set[0].attrs.height/2,
@@ -584,46 +519,17 @@ function connectUsing(index,state,other,outNum,tipTxt) {
     pt[i]=Math.floor(pt[i]);
   }
   var arr=cbotGlobal.workspace.arrow(pt[0],pt[1],pt[2],pt[3],4);
-  arr[1].data("state",state);
-  arr[1].data("other",other);
   arr[1].hover(function() {
-    //state.glowArrow=arr[1].glow();
-    removeGlobal("glowArrow");
-    cbotGlobal.glowArrow=this.glow();
+    arr[3]=arr[1].glow();
   }, function() {
-    //state.glowArrow.remove();
-    removeGlobal("glowArrow");
+    arr[3].remove();
   });
   arr[1].click(function(evt) {
-    var state=this.data("state");
-    var other=this.data("other");
-    var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
-    var i=connectArr.length-1;
-    while (connectArr[i]!==other.key && i>=0) i-=2;
-    if (i>=0) {
-      if (i===(connectArr.length-1)) {
-        alert("este es el camino default");
-      }
-      else {
-        jQuery("#regexp").val(connectArr[i+1]);
-        $("#arrowStateName").val(state.key);
-        $("#arrowOtherStateName").val(other.key);
-        $("#arrowConfIdx").val(state.conf_idx);
-        $("#arrowCnctIdx").val(i+1);
-        cbotGlobal.arrowDialog.dialog("open");
-        //alert("rr="+$("#regexp"));
-      }
-      
-    }
-    else {
-      alert("esto no puede pasar!");
-    }
-    
-/*    jQuery("#arrowDialog").simpleDialog({
+    jQuery("#arrowDialog").simpleDialog({
       showCloseLabel:false,
       open: function() {alert("open")},
       close:function() {alert("close")}
-    });*/
+    });
   });
   var tip=labelIt((pt[0]+pt[2])/2,
                   (pt[1]+pt[3])/2,
@@ -662,14 +568,14 @@ function connectStates() {
   var i,j;
   var state,other;
   var connectArr;
-  var confStates=cbotGlobal.conf.states;
-  for (i=0; i<confStates.length; i+=1) {
-    state=cbotGlobal.states[confStates[i].key];
-    connectArr=confStates[i].flow.connect;// i es === a state.conf_idx
+  
+  for (i=0; i<cbotGlobal.conf.states.length; i+=1) {
+    state=cbotGlobal.states[cbotGlobal.conf.states[i].key];
+    connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
     if (connectArr!==undefined) {
       for (j=0; j<connectArr.length; j+=2) {
         other=cbotGlobal.states[connectArr[j]];
-        connect(state,other,Math.floor(j/2+1),
+        connect(state,other,Math.floor((j+1)/2+1),
                 connectArr[j+1]!==undefined?connectArr[j+1]:"default");
       }
     }
@@ -693,7 +599,7 @@ function buildWorkspace(conf) {
 
 
   cbotGlobal.states={};
-  //cbotGlobal.idx2key=[];
+  cbotGlobal.idx2key=[];
   for (i=0; i<conf.states.length; i+=1) {
     buildState(i,conf.states[i]);
   }
@@ -714,6 +620,8 @@ function startMonitoring(newUUID) {
   }
 }
 
+
+
 function showRobot(idx) {
   var i;
   if (cbotGlobal.robot !== undefined) {
@@ -728,8 +636,8 @@ function showRobot(idx) {
 
 function editStateConf() {
   var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
+  if (!isNaN(this.group[0].idx)) {
+    state=cbotGlobal.states[cbotGlobal.idx2key[this.group[0].idx]];
   }
   if (state) {
     jQuery("#state-create").hide();
@@ -818,47 +726,6 @@ function handler1(result) {
   }
 }
 
-cbotGlobal.oprOKFunc={};
-
-cbotGlobal.oprOKFunc["sleep-opr"] = function () {
-  var state=cbotGlobal.states[$("#sleep-oprStateName").val()];
-  var delta=$("#sleep-oprDelta").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"delta":delta};
-}
-cbotGlobal.oprOKFunc["socket-opr"] = function () {
-  var div=$("#socket-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var host=div.find("#host").val();
-  var port=div.find("#port").val();
-  var timeout=div.find("#timeout").val();
-  var rCount=div.find("#retry-count").val();
-  var rDelay=div.find("#retry-delay").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["timeout"]=timeout;
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-count"]=rCount;
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-delay"]=rDelay;
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"host":host,"port":port};
-}
-
-function getDialog4Opr(opr) {
-  var oprDiag=opr+"Dialog";
-  if (cbotGlobal.oprDiags[oprDiag]===undefined) {
-    cbotGlobal.oprDiags[oprDiag]=$("#"+oprDiag).dialog({
-          autoOpen:false,
-          modal:true,
-          buttons : {
-            "Ok":function() {
-              cbotGlobal.oprOKFunc[opr]();
-              $(this).dialog("close");
-            },
-            "Cancel" : function() {
-              $(this).dialog("close");
-            }
-          }
-        });
-  }
-  return cbotGlobal.oprDiags[oprDiag];
-}
-
 ////////////////////////////////////////////////////////////
 jQuery(document).ready(function() {
   cbotGlobal.workspace=Raphael("states","600","400");
@@ -914,25 +781,6 @@ jQuery(document).ready(function() {
     setMonitoring(false);
     startMonitoring(true);
   });
-  cbotGlobal.arrowDialog=$("#arrowDialog").dialog({
-          autoOpen:false,
-          modal:true,
-          buttons : {
-            "Ok":function() {
-              var state=cbotGlobal.states[$("#arrowStateName").val()];
-              var other=cbotGlobal.states[$("#arrowOtherStateName").val()];
-              var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
-              var i=$("#arrowCnctIdx").val();
-              connectArr[i]=$("#regexp").val();
-              removeArrows(state,other.key);
-              reConnectStates(state,other.key);    
-              $(this).dialog("close");
-            },
-            "Cancel" : function() {
-              $(this).dialog("close");
-            }
-          }
-        });
   jQuery.ajax({
     url: "/operations",
     dataType: "json",
