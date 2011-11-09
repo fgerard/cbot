@@ -1,0 +1,25 @@
+<html>
+<!--
+<?xml version="1.0" encoding="UTF-8"?>
+  <WISPAccessGatewayParam
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="http://velas.wifi/xml/WISPAccessGatewayParam.xsd">
+    <Redirect>
+	<AccessProcedure>1.0</AccessProcedure>
+	<AccessLocation></AccessLocation>
+	<LocationName></LocationName>
+	<LoginURL>http://velas.wifi/login?target=xml</LoginURL>
+	<MessageType>100</MessageType>
+	<ResponseCode>0</ResponseCode>
+    </Redirect>
+  </WISPAccessGatewayParam>
+-->
+<head>
+<title>...</title>
+<meta http-equiv="refresh" content="0; url=http://velas.wifi/login?dst=http%3A%2F%2Fajax.googleapis.com%2Fajax%2Flibs%2Fjqueryui%2F1.8%2Fthemes%2Fbase%2Fjquery-ui.css">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="-1">
+</head>
+<body>
+</body>
+</html>

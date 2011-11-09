@@ -289,7 +289,7 @@
 (defmethod set-in-ui "print-context-opr" [state]
   (let [panel ((keyword (get-state-opr state)) opr-panels)
         reg (ss/select (ss/to-root panel) [:#re])]
-    (.setText reg (:filter (:conf (:conf-map state))))
+    (.setText reg (:filter-re (:conf (:conf-map state))))
     panel))
 
 (defmethod set-in-ui "get-http-opr" [state]
@@ -466,7 +466,7 @@
 
 (defmethod get-from-ui "print-context-opr" [operation-name]
   (let [diag ((keyword operation-name) opr-panels)]
-    {:opr operation-name :conf {:filter (ss/text (ss/select (ss/to-root diag) [:#re]))}}))
+    {:opr operation-name :conf {:filter-re (ss/text (ss/select (ss/to-root diag) [:#re]))}}))
 
 (defmethod get-from-ui "get-http-opr" [operation-name]
   (let [panel ((keyword operation-name) opr-panels)
@@ -1154,7 +1154,7 @@
                                (:states v-map)))
                     (map-into-keyval (:parameters v-map))
                     (into {} (map (fn [[k v]]
-                                    [k (InstanceInfo. k (map-into-keyval (:param-map v)))])
+                                    [k (InstanceInfo. k (map-into-keyval (if (= "null" (:param-map v)) {} (:param-map v))))])
                                   (:instances v-map)))
                     (str (:stats-cache-len v-map))))
 
@@ -1220,7 +1220,21 @@
     (.encode encoder buffimg)
     (.toByteArray baos)))
 
-(def states-coords
+(def app-pos-ctrl (ref {}))
+
+(defn states-coords [k-app]
+  (dosync
+   (if-let [app-states (@app-pos-ctrl k-app)]
+     app-states
+     (let [app (create-app-from-map k-app (store/get-app k-app))
+           app-states (into {}
+                            (map
+                             (fn [state]
+                               {(get-key state) {:x (:x (:flow state)) :y (:y (:flow state))}})
+                             (:states app)))]
+       (alter app-pos-ctrl assoc k-app app-states)))))
+
+(def states-coords-memoize
   (memoize
    (fn [k-app]
     (let [app (create-app-from-map k-app (store/get-app k-app))]
@@ -1235,3 +1249,8 @@
 
 (defn state-coord [k-app k-state]
   ((states-coords k-app) k-state))
+
+
+
+
+

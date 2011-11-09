@@ -11,6 +11,7 @@
   (ring/redirect "/index.html"))
 
 (defn app-instances [app]
+  (log/debug "app-instances -> " app)
   (let [factory (get-app-factory (keyword app))
         inst-ks (into [] (factory nil))]
     (json/json-str inst-ks)))
@@ -19,11 +20,14 @@
   (json/json-str (store/get-app (keyword app))))
 
 (defn app-save-conf [app conf]
+  (println app)
+  (println conf)
   (let [appk (keyword app)
         states-map (:states conf)
         states (into [] (for [i (range (count states-map))] ((keyword (str i)) states-map)))
         conf (assoc conf :states states)]
     (store/set-app (keyword app) conf)
+    (stop-and-remove-old-app appk)
     {"result" "ok"}))
 
 (defn get-operations []
@@ -41,7 +45,9 @@
       (cond
         (= cmd "start") result 
         (= cmd "stop") result 
-        (= cmd "current-pos") (json/json-str (key2str result))
+        (= cmd "current-pos") (if (:json params)
+                                (json/json-str (key2str result))
+                                (str (assoc-in result [:stats :info]  (into [] (-> result :stats :info))))) 
         (= cmd "resume") result)))
 
 

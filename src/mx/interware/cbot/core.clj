@@ -285,8 +285,8 @@
                           (first
                            (filter
                             (fn [par]
-                              (log/debug (str "rule (<exit-state> <reg-exp) " par " value:" value))
-                              (re-matches (re-pattern (second par)) value))
+                              (log/debug (str "rule (<exit-state> <reg-exp) " (second par) " value:" value))
+                              (re-matches (re-pattern (str (second par))) (str value)))
                             (partition 2 vec-rule))))]
         (do
           (log/debug (str "re-flow next state:" seleccion))
@@ -463,6 +463,7 @@
                           states
                           (keyword (subs (:key (first pre-states)) 1)) 
                           (if stats (fix-number stats) 100)))))
+
 (defn get-app-factory [app-key]
   (if-let [factory (app-key @app-ctrl)]
     factory
@@ -471,7 +472,7 @@
        (alter app-ctrl #(assoc % app-key factory))
        factory))))
 
-(defn- get-cbot-old [app-key inst-key]
+(defn- get-cbot [app-key inst-key]
   (dosync
    (let [k (str app-key inst-key)]
      (if-let [cbot (@cbot-ctrl k)]
@@ -481,7 +482,16 @@
          (alter cbot-ctrl assoc k cbot)
          cbot)))))
 
-(def get-cbot
+
+(defn stop-and-remove-old-app [app-key]
+  (doseq [[appinst-k cbot] (filter #(.startsWith (str (% 0)) (str app-key)) @cbot-ctrl)]
+    (log/info "stop-and-remove-old-all stopping " appinst-k)
+    (cbot-stop cbot)
+    (dosync (alter cbot-ctrl dissoc appinst-k)))
+  (dosync (alter app-ctrl dissoc app-key))
+  (dosync (alter ui/app-pos-ctrl dissoc app-key)))
+
+(def get-cbot-memoize
   (memoize
    (fn [app-key inst-key]
      (let [factory (get-app-factory app-key)
@@ -507,6 +517,7 @@
         cbot-value)
       {:cbot-msg (str "No cbot for " app-k " application and " inst-k)})
     {:cbot-msg "Application key or instance key missing!"}))
+
 
 (defmethod apply-cmd "current-pos" [app-k inst-k cmd & param]
   (if (and param app-k inst-k)

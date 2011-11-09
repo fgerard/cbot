@@ -30,8 +30,19 @@
   (GET "/conf/:app-name" [app-name]
        (app-conf app-name))
   
-  (GET "/apps/:app-name/:inst-name" [app-name inst-name cmd uuid timeout msg]
-       (send-cmd app-name inst-name cmd {:uuid uuid :timeout (to-long timeout) :msg msg}))
+  (GET "/apps/:app-name/:inst-name" [app-name inst-name cmd uuid timeout msg json]
+       (send-cmd app-name inst-name cmd {:uuid uuid
+                                         :timeout (to-long timeout)
+                                         :msg msg
+                                         :json (if (and json (.equalsIgnoreCase json "false")) false true)}))
+
+  (POST "/apps/:app-name/:inst-name" [app-name inst-name cmd uuid timeout msg json]
+        (send-cmd app-name inst-name cmd {:uuid uuid
+                                          :timeout (to-long timeout)
+                                          :msg msg
+                                          :json (if (and
+                                                     json
+                                                     (.equalsIgnoreCase json "false")) false true)}))
   
   (GET "/cbotimg/:app" [app]
        {:status 200

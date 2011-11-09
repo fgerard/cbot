@@ -52,6 +52,7 @@ function fillSelect(json,tagLabel,globalName,changeFunc,nextFunc) {
     }
   }
   if (changeFunc) {
+    //combo.prepend("<option value='**NEW**'>**NEW**</option>")
     jQuery(tagLabel).change(changeFunc);
   }
   if (globalName) {
@@ -70,6 +71,12 @@ function fillInstances(instances) {
 function applicationChange() {
   showRobot(-1);
   var app=jQuery("#applications option:selected").text();
+
+  //if (app==="**NEW**") {
+// llena instances con **NEW** solamente
+// dialogo para datos generales de la app
+  //}
+
   cbotGlobal.app=app;
   cbotGlobal.inst=cbotGlobal.NV;
   jQuery.ajax({
@@ -88,20 +95,22 @@ function applicationChange() {
 }
 
 function fillApplications(apps) {
-  var app=fillSelect(apps,"#applications","app",applicationChange,function (selected) {
+  if (apps.length>0) {
+    var app=fillSelect(apps,"#applications","app",
+                       applicationChange,function (selected) {
+      jQuery.ajax({
+        url: "/apps/"+selected,
+        dataType: "json",
+        success: fillInstances});
+    });
+    cbotGlobal.app=app;
+    cbotGlobal.inst=cbotGlobal.NV;
     jQuery.ajax({
-      url: "/apps/"+selected,
+      url: "/conf/"+app,
       dataType: "json",
-      success: fillInstances});
-  });
-  cbotGlobal.app=app;
-  cbotGlobal.inst=cbotGlobal.NV;
-
-  jQuery.ajax({
-    url: "/conf/"+app,
-    dataType: "json",
-    success: buildWorkspace
-  })
+      success: buildWorkspace
+    });
+  }
 }
 
 function fillOperations(oprs) {
@@ -292,7 +301,10 @@ function saveStates() {
     dataType: "json",
     data:{"conf":cbotGlobal.conf},
     success: function(result) {
-      alert("result:"+result.result);
+      applicationChange(); 
+      setMonitoring(true);
+      startMonitoring(true);
+      //alert("result:"+result.result);
     }
   });
 }
@@ -337,6 +349,10 @@ function connectInConf(state,other,regExp) {
   var idx=state.conf_idx;
   var connectArr=cbotGlobal.conf.states[idx].flow.connect;
   var i;
+  if (connectArr===undefined) {
+    connectArr=[];
+    cbotGlobal.conf.states[idx].flow.connect=connectArr;
+  }
   if (connectArr.length===0) {
     connectArr.unshift(other.key);
   }
@@ -468,23 +484,91 @@ function setTimeoutOpr(confState,div) {
   div.find("#retry-count").val(confState["conf-map"]["retry-count"]);
 }
 
+function getWithDefault(mapa,path,defaultValue) {
+  var i;
+  var value=mapa;
+  for (i=0; i<path.length; i++) {
+    value=value[path[i]];
+    if (value===undefined) return defaultValue;
+  }
+  return value;
+}
+
 cbotGlobal.oprSetFunc={};
 
 cbotGlobal.oprSetFunc["sleep-opr"]=function (state,confState) {
   var div=$("#sleep-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#delta").val(confState["conf-map"].conf.delta);
+  div.find("#delta").val(getWithDefault(confState,["conf-map","conf","delta"],"1000"));
 }
 
 cbotGlobal.oprSetFunc["socket-opr"]=function(state,confState) {
   var div=$("#socket-oprDialog");
   div.find("#state-name").val(state.key);
   setTimeoutOpr(confState,div);
-
-  div.find("#host").val(confState["conf-map"].conf.host);
-  div.find("#port").val(confState["conf-map"].conf.port);
+  div.find("#host").val(getWithDefault(confState,["conf-map","conf","host"],"localhost"));
+  div.find("#port").val(getWithDefault(confState,["conf-map","conf","port"]),"22");
 }
 
+cbotGlobal.oprSetFunc["human-opr"]=function(state,confState) {
+  var div=$("#human-oprDialog");
+  div.find("#state-name").val(state.key);
+}
+
+cbotGlobal.oprSetFunc["switch-good-opr"]=function(state,confState) {
+  var div=$("#switch-good-oprDialog");
+  div.find("#state-name").val(state.key);
+}
+
+cbotGlobal.oprSetFunc["switch-bad-opr"]=function(state,confState) {
+  var div=$("#switch-bad-oprDialog");
+  div.find("#state-name").val(state.key);
+  var minutes2wait=getWithDefault(confState,["conf-map","conf","minutes2wait"],"5");
+  div.find("#minutes2wait").val(minutes2wait);
+}
+
+cbotGlobal.oprSetFunc["log-opr"]=function(state,confState) {
+  var div=$("#log-oprDialog");
+  div.find("#state-name").val(state.key);
+  div.find("#text").val(getWithDefault(confState,["conf-map","conf","text"],""));
+  var lev=getWithDefault(confState,["conf-map","conf","level"],":debug");
+  var kkk=div.find("#log-levels").find("option").each(function(){
+    var tkt=$(this).val();
+    this.selected=$(this).val()===lev;
+  });
+}
+
+cbotGlobal.oprSetFunc["print-msg-opr"]=function (state,confState) {
+  var div=$("#print-msg-oprDialog");
+  div.find("#state-name").val(state.key);
+  div.find("#msg").val(getWithDefault(confState["conf-map","conf","msg"],""));
+}
+
+cbotGlobal.oprSetFunc["print-context-opr"]=function (state,confState) {
+  var div=$("#print-context-oprDialog");
+  div.find("#state-name").val(state.key);
+  div.find("#filter-re").val(getWithDefault(confState,["conf-map","conf","filter-re"],".*"));
+}
+
+cbotGlobal.oprSetFunc["get-http-opr"]=function (state,confState) {
+  var div=$("#get-http-oprDialog");
+  div.find("#state-name").val(state.key);
+  div.find("#url").val(getWithDefault(confState,["conf-map","conf","url"],"http://"));
+}
+
+cbotGlobal.oprSetFunc["post-http-opr"]=function (state,confState) {
+  var div=$("#post-http-oprDialog");
+  div.find("#state-name").val(state.key);
+  var kkk=div.find("#state-name").val();
+  div.find("#url").val(getWithDefault(confState,["conf-map","conf","url"],"http://"));
+  div.find("#params").val(getWithDefault(confState,["conf-map","conf","params"],"name=value\nname=value"));
+}
+
+cbotGlobal.oprSetFunc["clojure-opr"]=function (state,confState) {
+  var div=$("#clojure-oprDialog");
+  div.find("#state-name").val(state.key);
+  div.find("#code").val(getWithDefault(confState,["conf-map","conf","code"],""));
+}
 
 function updateState() {
   var state=cbotGlobal.states[this.group[0].key];
@@ -602,18 +686,17 @@ function connectUsing(index,state,other,outNum,tipTxt) {
     while (connectArr[i]!==other.key && i>=0) i-=2;
     if (i>=0) {
       if (i===(connectArr.length-1)) {
-        alert("este es el camino default");
+        jQuery("#regexp").val("default (do not change)").attr({disabled:true});
       }
       else {
-        jQuery("#regexp").val(connectArr[i+1]);
-        $("#arrowStateName").val(state.key);
-        $("#arrowOtherStateName").val(other.key);
-        $("#arrowConfIdx").val(state.conf_idx);
-        $("#arrowCnctIdx").val(i+1);
-        cbotGlobal.arrowDialog.dialog("open");
-        //alert("rr="+$("#regexp"));
-      }
-      
+        jQuery("#regexp").val(connectArr[i+1]).attr({disabled:false});
+      }        
+      $("#arrowStateName").val(state.key);
+      $("#arrowOtherStateName").val(other.key);
+      //$("#arrowConfIdx").val(state.conf_idx);
+      $("#arrowCnctIdx").val(i+1);
+      cbotGlobal.arrowDialog.dialog("open");
+      //alert("rr="+$("#regexp"));      
     }
     else {
       alert("esto no puede pasar!");
@@ -818,25 +901,119 @@ function handler1(result) {
   }
 }
 
-cbotGlobal.oprOKFunc={};
-
-cbotGlobal.oprOKFunc["sleep-opr"] = function () {
-  var state=cbotGlobal.states[$("#sleep-oprStateName").val()];
-  var delta=$("#sleep-oprDelta").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"delta":delta};
-}
-cbotGlobal.oprOKFunc["socket-opr"] = function () {
-  var div=$("#socket-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var host=div.find("#host").val();
-  var port=div.find("#port").val();
+function getTimeoutOpr(div,state) {
   var timeout=div.find("#timeout").val();
   var rCount=div.find("#retry-count").val();
   var rDelay=div.find("#retry-delay").val();
   cbotGlobal.conf.states[state.conf_idx]["conf-map"]["timeout"]=timeout;
   cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-count"]=rCount;
   cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-delay"]=rDelay;
+}
+
+cbotGlobal.oprOKFunc={};
+
+cbotGlobal.oprOKFunc["sleep-opr"] = function () {
+  var div=$("#sleep-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var delta=div.find("#delta").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"delta":delta};
+}
+
+cbotGlobal.oprOKFunc["socket-opr"] = function () {
+  var div=$("#socket-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div,state);
+  var host=div.find("#host").val();
+  var port=div.find("#port").val();
   cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"host":host,"port":port};
+}
+
+cbotGlobal.oprOKFunc["human-opr"] = function () {
+}
+
+cbotGlobal.oprOKFunc["switch-good-opr"] = function () {
+}
+cbotGlobal.oprOKFunc["switch-bad-opr"] = function () {
+  var div=$("#switch-bad-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var minutes2wait=div.find("#minutes2wait").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"minutes2wait":minutes2wait};
+}
+
+cbotGlobal.oprOKFunc["log-opr"] = function () {
+  var div=$("#log-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var level=div.find("#log-levels option:selected").val();
+  var text=div.find("#text").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"level":level,"text":text};
+}
+
+cbotGlobal.oprOKFunc["print-msg-opr"] = function () {
+  var div=$("#print-msg-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var msg=div.find("#msg").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"msg":msg};
+}
+
+cbotGlobal.oprOKFunc["print-context-opr"] = function () {
+  var div=$("#print-context-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var filter=div.find("#filter-re").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"filter-re":filter};
+}
+
+cbotGlobal.oprOKFunc["get-http-opr"] = function () {
+  var div=$("#get-http-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div,state);
+  var url=div.find("#url").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"url":url};
+}
+
+cbotGlobal.oprOKFunc["post-http-opr"] = function () {
+  var div=$("#post-http-oprDialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div,state);
+  var url=div.find("#url").val();
+  var params=div.find("#params").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"url":url, "params":params};
+}
+
+cbotGlobal.oprOKFunc["clojure-opr"] = function () {
+  var div=$("#clojure-oprDialog");
+  var kk=div.find("#state-name").val();
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var code=div.find("#code").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"code":code};
+}
+
+function removeState(opr) {
+  var div=$("#"+opr+"Dialog");
+  var state=cbotGlobal.states[div.find("#state-name").val()];
+  var i,j;
+  var nstates=[];
+  var connectVec;
+  var cur;
+  for (i=0; i<cbotGlobal.conf.states.length; i++) {
+    cur=cbotGlobal.conf.states[i];
+    if (cur.key!==state.key) {
+      connectVec=[];
+      if (cur.flow.connect!==undefined) {
+        for (j=0; j<cur.flow.connect.length; j+=2) {
+          if (cur.flow.connect[j] !== state.key) {
+            connectVec.push(cur.flow.connect[j]);
+            if (j<cur.flow.connect.length-1) {
+              connectVec.push(cur.flow.connect[j+1]);
+            }
+          }
+        }
+      }
+      cur.flow.connect=connectVec;
+      nstates.push(cbotGlobal.conf.states[i]);
+    }
+  }
+  cbotGlobal.conf.states=nstates;
+  buildWorkspace(cbotGlobal.conf);
 }
 
 function getDialog4Opr(opr) {
@@ -850,6 +1027,10 @@ function getDialog4Opr(opr) {
               cbotGlobal.oprOKFunc[opr]();
               $(this).dialog("close");
             },
+            "Remove" : function() {
+              removeState(opr);
+              $(this).dialog("close");
+            },
             "Cancel" : function() {
               $(this).dialog("close");
             }
@@ -860,6 +1041,18 @@ function getDialog4Opr(opr) {
 }
 
 ////////////////////////////////////////////////////////////
+
+function removeFromArr(arr,value) {
+  var tmp=[];
+  var i;
+  for (i=0; i<arr.length; i++) {
+    if (value!==arr[i]) {
+      tmp.push(arr[i]);
+    }
+  }
+  return tmp;
+}
+
 jQuery(document).ready(function() {
   cbotGlobal.workspace=Raphael("states","600","400");
   jQuery("#start-button").click(function () {
@@ -888,12 +1081,10 @@ jQuery(document).ready(function() {
   });
   jQuery("#add-state").click(function() {
     if (cbotGlobal.app!==cbotGlobal.NV) {
-      var stateName=jQuery("#state-name").val();
+      var stateName=":"+jQuery("#state-name").val();
       var stateOpr=jQuery("#operations option:selected").text();
       var newState={flow: {x:500,y:300,connect:[]}, key:stateName,
                     "conf-map":{opr: stateOpr, conf: []}};
-
-      //falta aumentar el nuevo al conf global!!!!! 
       buildState(cbotGlobal.conf.states.length,newState);
       cbotGlobal.conf.states.push(newState);
     }
@@ -928,11 +1119,39 @@ jQuery(document).ready(function() {
               reConnectStates(state,other.key);    
               $(this).dialog("close");
             },
+            "Remove":function() {
+              var state=cbotGlobal.states[$("#arrowStateName").val()];
+              var other=cbotGlobal.states[$("#arrowOtherStateName").val()];
+              var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
+              var i=parseInt($("#arrowCnctIdx").val(),10)-1;
+              var nconnectArr=[];
+              var j;
+              for (j=0; j<connectArr.length; j+=2) {
+                if (i!==j) {
+                  nconnectArr.push(connectArr[j]);
+                  if (j<connectArr.length-1 && i!==connectArr.length-1) {
+                    nconnectArr.push(connectArr[j+1]);
+                  }
+                }
+              }
+              removeArrows(state,other.key);
+              state.statesOut=removeFromArr(state.statesOut,other.key);
+              other.statesIn=removeFromArr(other.statesIn,state.key);
+              cbotGlobal.conf.states[state.conf_idx].flow.connect=nconnectArr;
+              $(this).dialog("close");
+            },
             "Cancel" : function() {
               $(this).dialog("close");
             }
           }
         });
+  jQuery("#add-http-post-param").click(function() {
+    var uuid=localUUID();
+    jQuery("#http-post-params").append('<tr><td><input type="button" id='+uuid+' class="button" value="Del"/></td><td><input type=\"text\"/></td><td><input type=\"text\"/></td></tr>');
+    jQuery("#"+uuid).click(function () {
+      var tr=$("#"+uuid).parent().parent().remove();
+    });
+  })
   jQuery.ajax({
     url: "/operations",
     dataType: "json",

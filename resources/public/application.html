@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>e-Robot (New Application)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="css/style.css" type="text/css"
+      media="all">
+<script src="/js/jquery-1.6.4.min.js" type="text/javascript"></script>
+<link href="/css/jquery-ui-1.8.16.custom.css" rel="stylesheet" type="text/css"/>
+<script src="/js/jquery-ui-1.8.16.custom.min.js"></script>
+<script src="/js/raphael.js" type="text/javascript"></script>
+<script src="/js/application.js" type="text/javascript"></script>
+</head>
+<body>
+
+<form id="appForm">
+  <table>
+    <tr><td>Name</td><td><input id="app-name" type="text"
+    value=""/></td><td rowspan="3"><input type="button" id="create-app"
+    class="button"  value="Create"/></td></tr>
+    <tr><td>Interstate-delay</td><td><input id="interstate-delay" type="text" value=""/></td></tr>
+    <tr><td>Stats-cache-len</td><td><input id="stats-cache-len" type="text" value=""/></td></tr>
+  </table>
+  <table id="parameters" border="1" cellspacing="5" width="400pt">
+    <tr><th width="10%"></th><th width="20%">Name</th><th width="70%">Value of parameter</th></tr>
+  </table>
+  <input type="button" id="add-p-btn" class="button" value="Add parameter"/><br/><br/>
+  <table id="instances" border="1" cellspacing="5" width="800pt">
+    <tr><th width="10%"></th><th width="20%">Instance</th><th width="70%">Parameters</th></tr>
+  </table>
+  <input type="button" id="add-i-btn" class="button" value="Add instance"/>
+</form>
+<a href="/index.html" id="index">return to main</a>
+<div style="display:none;" id="appDialog">
+
+</div>

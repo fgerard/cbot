@@ -60,9 +60,9 @@
   (fn [context]
     (let [con (. (java.net.URL. (util/contextualize (:url conf) context)) openConnection)]
       (do
-	(. con setOutput true)
+	(. con setDoOutput true)
 	(with-open [out (PrintWriter. (OutputStreamWriter. (. con getOutputStream)))]
-	  (. out print (:post conf))
+	  (. out print (:params conf))
 	  (. out flush))) 
     (with-open [rdr (BufferedReader. (InputStreamReader. (. con getInputStream)))]
       (apply str (line-seq rdr))))))
@@ -78,7 +78,7 @@
                (sorted-map)
                (map #(vector (first %) (util/str-trunc2len (second %) 100))
                     (filter #(re-matches
-                      (re-pattern (util/contextualize (:filter conf) context))
+                      (re-pattern (util/contextualize (:filter-re conf) context))
                        (name (% 0))) context))))
     (str "print-context-opr @" (System/currentTimeMillis))))
 
