@@ -1,0 +1,377 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>e-Robot</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="css/style.css" type="text/css"
+      media="all">
+<script src="/js/jquery-1.6.4.min.js" type="text/javascript"></script>
+<link href="/css/jquery-ui-1.8.16.custom.css" rel="stylesheet" type="text/css"/>
+<script src="/js/jquery-ui-1.8.16.custom.min.js"></script>
+<script src="/js/raphael.js" type="text/javascript"></script>
+<script src="/js/cbot2.js" type="text/javascript"></script>
+</head>
+<body>
+<!-- Header -->
+<div id="header">
+  <div class="shell">
+    <!-- Logo + Top Nav -->
+    <div id="top">
+    <img src="images/logo-e-Robot.png" width="124" height="39" alt="e-robot"></div>
+    <!-- End Logo + Top Nav -->
+  </div>
+</div>
+<!-- End Header -->
+<!-- Container -->
+<div id="container">
+  <div class="shell">
+    <!-- Main -->
+    <div id="main">
+      <div class="cl">&nbsp;</div>
+      <!-- Content -->
+      <div id="content">
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2 class="left">State diagram</h2>
+            <div id="thump" class="right" style="position:relative; display:inher"> 
+              <img src="images/thumb-up.png"  id="thumb-up" style="position:relative; display:inherit; padding-top:5px" />
+              <img src="images/thumb.png"  id="thumb-down" style="position:relative; display:none; padding-top:5px"/>
+            </div>
+            <div class="right">
+            </div>
+          </div>
+          <!-- End Box Head -->
+          <!-- CBOT -->
+          <div id="states" style="position:relative;"></div>
+          <!-- End CBOT -->
+          <!-- Form Buttons -->
+          <div class="buttons" >
+             
+          </div>
+            <!-- End Form Buttons -->
+        </div>
+        <!-- End Box -->
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2>Status</h2>
+          </div>
+          <!-- End Box Head -->
+          <!-- Table -->
+          <div class="table">
+            <table class="status" width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <th width="9%">State</th>
+                <th width="61%">Result</th>
+                <th width="16%">When</th>
+                <th width="13%">Delta</th>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.0">State 0</td>
+                <td class="status" id="status.result.0">Result 0</td>
+                <td class="status" id="status.when.0">When 0</td>
+                <td class="status" id="status.delta.0">Delt 0</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.1">State 1</td>
+                <td class="status" id="status.result.1">Result 1</td>
+                <td class="status" id="status.when.1">When 1</td>
+                <td class="status" id="status.delta.1">Delt 1</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.2">State 2</td>
+                <td class="status" id="status.result.2">Result 2</td>
+                <td class="status" id="status.when.2">When 2</td>
+                <td class="status" id="status.delta.2">Delt 2</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.3">State 3</td>
+                <td class="status" id="status.result.3">Result 3</td>
+                <td class="status" id="status.when.3">When 3</td>
+                <td class="status" id="status.delta.3">Delt 3</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.4">State 4</td>
+                <td class="status" id="status.result.4">Result 4</td>
+                <td class="status" id="status.when.4">When 4</td>
+                <td class="status" id="status.delta.4">Delt 4</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.5">State 5</td>
+                <td class="status" id="status.result.5">Result 5</td>
+                <td class="status" id="status.when.5">When 5</td>
+                <td class="status" id="status.delta.5">Delt 5</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.6">State 6</td>
+                <td class="status" id="status.result.6">Result 6</td>
+                <td class="status" id="status.when.6">When 6</td>
+                <td class="status" id="status.delta.6">Delt 6</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.7">State 7</td>
+                <td class="status" id="status.result.7">Result 7</td>
+                <td class="status" id="status.when.7">When 7</td>
+                <td class="status" id="status.delta.7">Delt 7</td>
+              </tr>
+              <tr>
+                <td class="status" id="status.state.8">State 8</td>
+                <td class="status" id="status.result.8">Result 8</td>
+                <td class="status" id="status.when.8">When 8</td>
+                <td class="status" id="status.delta.8">Delt 8</td>
+              </tr>
+              <tr class="odd">
+                <td class="status" id="status.state.9">State 9</td>
+                <td class="status" id="status.result.9">Result 9</td>
+                <td class="status" id="status.when.9">When 9</td>
+                <td class="status" id="status.delta.9">Delt 9</td>
+              </tr>
+            </table>
+          </div>
+          <!-- Table -->
+
+            <!-- Form Buttons -->
+            <div class="buttons" >
+            </div>
+            <!-- End Form Buttons -->
+        </div>
+        <!-- End Box -->
+      </div>
+      <!-- End Content -->
+      <!-- Sidebar -->
+      <div id="sidebar">
+        <!-- Box -->
+        <div class="box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2>Control center</h2>
+          </div>
+          <!-- End Box Head-->
+          <div class="box-content"> 
+          	<!-- Sort -->
+            <div class="swich"> 
+              <h4><a href="/application.html">Applications</a></h4>
+              <select class="field" id="applications">
+                <option value="" id="application">Application1</option>
+                <option value="" id="application">Application2</option>
+              </select>
+              <h4>Instance</h4>
+              <select class="field" id="instances">
+              </select>
+            </div>
+            <div class="cl">&nbsp;</div>
+            <!-- End Sort -->
+            <input id="start-monitor-button" type="button" class="button" value="Start-monitor"/>
+            <input id="stop-monitor-button" type="button" class="button" value="Stop-monitor"/>
+            <div class="swich" id="start-stop">
+              <input id="start-button" type="button" class="button" style="display:inherit" value="Start"/>
+              <input id="stop-button" type="button" class="button" style="display:none" value="Stop"/>
+            </div>
+            <p id="result-str"></p><br/>
+            <div class="cl">&nbsp;</div>
+            <div id="resume" class="resume" style="display:inherit">
+              <!--br/-->
+              <p>Response</p>
+              <input id="resume-msg" name="resume-msg"  type="text">
+              <input id="resume-button" type="button" class="button" value="Resume">
+            </div>
+            <div class="cl">&nbsp;</div>
+          </div>
+        </div>
+        <!-- End Box -->
+      </div>
+      <!-- End Sidebar -->
+<!-- Sidebar -->
+      <div id="sidebar">
+        
+        <div class="box">
+          
+          <div class="box-head">
+            <h2>State capture</h2>
+          </div>
+          
+          <div id="state-create" class="box-content" style="display:inherit">
+            <select class="field" id="operations"></select>
+            <div class="cl">&nbsp;</div>
+            <input class="field" id="state-name"  type="text">
+            <div class="cl">&nbsp;</div>
+            <table><tr><td> 
+            <input id="add-state" name="add-state"  type="button" value="Add"/>
+            </td><td>
+            
+            <input id="save-states" name="save-states" type="button"  value="Save"/>
+            </td>
+            </tr></table>
+            <div class="cl">&nbsp;</div>
+          </div>
+<div style="display:none;" id="arrowDialog">
+  <h3>Rule</h3>
+  <form id="regexpForm">
+    RegExp <input id="regexp" type="text" value=".*" />
+    <input type="hidden" id="arrowStateName" value=""/>
+    <input type="hidden" id="arrowOtherStateName" value=""/>
+    <!--input type="hidden" id="arrowConfIdx" value=""/-->
+    <input type="hidden" id="arrowCnctIdx" value=""/>
+  </form>
+  <br/>
+  <!--p><a href="#" class="close">Close</a></p-->
+</div>
+
+<!-- dialogos para la captura de las operaciones -->
+<div style="display:none;" id="sleep-oprDialog">
+  <h3>Sleep operation</h3>
+  <form> 
+    Delta <input id="delta" type="text" value="1000"/>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="socket-oprDialog">
+  <h3>Socket operation</h3>
+  <form>
+    <table>
+    <tr><td>Host</td><td><input id="host" type="text" value=""/></td></tr>
+    <tr><td>Port</td><td><input id="port" type="text" value=""/></td></tr>
+    <tr><td>Timeout</td><td><input id="timeout" type="text" value=""/></td></tr>
+    <tr><td>Retry count</td><td><input id="retry-count" type="text" value=""/></td></tr>
+    <tr><td>Retry delay</td><td><input id="retry-delay" type="text" value=""/></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="human-oprDialog">
+  <h3>Human operation</h3>
+  <form>
+    No extra information
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="switch-good-oprDialog">
+  <h3>Switch good operation</h3>
+  <form>
+    No extra information
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="switch-bad-oprDialog">
+  <h3>Switch bad operation</h3>
+  <form>
+    Minutes to wait <input id="minutes2wait" type="text" value="15"/>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="log-oprDialog">
+  <h3>Log operation</h3>
+  <form>
+    <table>
+    <tr><td>Level</td><td><select class="field" id="log-levels">
+                            <option value=":trace">Trace</option>
+                            <option value=":debug" selected="selected">Debug</option>
+                            <option value=":info">Info</option>
+                            <option value=":warn">Warn</option>
+                            <option value=":error">Error</option>
+                            <option value=":fatal">Fatal</option>
+                          </select></td></tr>
+    <tr><td>Message</td><td><input type="text" id="text"/></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="print-msg-oprDialog">
+  <h3>Print msg operation</h3>
+  <form>
+    Message <input id="msg" type="text" value=""/>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="print-context-oprDialog">
+  <h3>Print context operation</h3>
+  <form>
+    Context name filter(RE) <input id="filter-re" type="text" value=".*"/>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="clojure-oprDialog">
+  <h3>Clojure operation</h3>
+  <form>
+    <table>
+    <tr><td>Code</td><td><textarea id="code" rows="20" cols="80"></textarea></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="get-http-oprDialog">
+  <h3>GET http operation</h3>
+  <form>
+    <table>
+    <tr><td>URL</td><td><input id="url" type="text" value="http://"/></td></tr>
+    <tr><td>Timeout</td><td><input id="timeout" type="text" value=""/></td></tr>
+    <tr><td>Retry count</td><td><input id="retry-count" type="text" value=""/></td></tr>
+    <tr><td>Retry delay</td><td><input id="retry-delay" type="text" value=""/></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+<div style="display:none;" id="post-http-oprDialog">
+  <h3>POST http operation</h3>
+  <form>
+    <table>
+    <tr><td>URL</td><td><input id="url" type="text" size="80" value="http://"/></td></tr>
+    <tr><td>Params</td><td>
+      <table id="http-post-params" border="1" width="300pt">
+        <tr><th width="30%">Name</th><th width="70%">Value</th></tr>
+        <tr><td colspan="2"><textarea id="params" cols="60" rows="20"></textarea></td></tr>
+      </table>
+    </td></tr>
+    <tr><td>Timeout</td><td><input id="timeout" type="text" value=""/></td></tr>
+    <tr><td>Retry count</td><td><input id="retry-count" type="text" value=""/></td></tr>
+    <tr><td>Retry delay</td><td><input id="retry-delay" type="text" value=""/></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
+
+
+
+        </div>
+        
+        </div>
+        
+
+      </div>
+      <!-- End Sidebar -->
+      <div class="cl">&nbsp;</div>
+    </div>
+    <!-- Main -->
+  </div>
+</div>
+<!-- End Container -->
+<!-- Footer -->
+<div id="footer">
+  <div class="shell"> <span class="left">© 2011 InterWare de México S.A. de C.V. / e-Robot</span> <span class="right"> Design by <a href="http://www.interware.com.mx">interware.com.mx</a> </span> </div>
+</div>
+<!-- End Footer -->
+
+<!--div id="arrowDialog" rel="arrowForm"/-->
+
+<!-- content -->
+
+<!--
+$('#sdHc3').simpleDialog({
+  showCloseLabel: false,
+  open: function () {
+    $('#checkboxStatus').html('');
+  },
+  close: function () {
+    var c = [];
+    $('#checkboxForm :checkbox:checked').each(function () {
+      c.push($(this).val());
+    });
+    $('#checkboxStatus').html('Checked ' + c.join(', ') + '.').show();
+  }
+});
+-->
+</body>
+</html>

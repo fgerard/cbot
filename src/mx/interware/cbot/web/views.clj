@@ -1,6 +1,7 @@
 (ns mx.interware.cbot.web.views
   (:use [hiccup core page-helpers]
-        mx.interware.cbot.core)
+        mx.interware.cbot.core
+        )
   (:require [clojure.tools.logging :as log]
             [clojure.data.json :as json]
             [mx.interware.cbot.ui :as ui]
@@ -8,7 +9,7 @@
             [ring.util.response :as ring]))
 
 (defn index-page []
-  (ring/redirect "/index.html"))
+  (ring/redirect "/index2.html"))
 
 (defn app-instances [app]
   (log/debug "app-instances -> " app)
@@ -43,12 +44,12 @@
   (let [result (apply-cmd (keyword app-name) (keyword inst-name) cmd params)]
       (log/debug (str "RESULT:" result))
       (cond
-        (= cmd "start") result 
-        (= cmd "stop") result 
+        (= cmd "start") (if (:json params) (json/json-str result) result)
+        (= cmd "stop") (if (:json params) (json/json-str result) result)
         (= cmd "current-pos") (if (:json params)
                                 (json/json-str (key2str result))
                                 (str (assoc-in result [:stats :info]  (into [] (-> result :stats :info))))) 
-        (= cmd "resume") result)))
+        (= cmd "resume") (if (:json params) (json/json-str result) result))))
 
 
 (defn report-log []

@@ -52,6 +52,13 @@
     (with-open [rdr (BufferedReader. (InputStreamReader. (. con getInputStream)))]
       (apply str (line-seq rdr))))))
 
+(defn- create-http-params [mlStr context]
+  (reduce #(str %1 "&" %2) (map (fn [lin]
+                    (let [[k v] (.split lin "=")
+                          k (.trim k)
+                          v (util/contextualize-text (.trim v) context)]
+                      (str k "=" v))) (.split mlStr "\n"))))
+
 ;;demo conf {:url "http://interware.com.mx" :post "a=1&b=2"} verificar!!!
 (defn post-http-opr
   {:doc "Operacion para hacer que la maquina de estados obtenga el contenido de una URL por http"
@@ -62,7 +69,7 @@
       (do
 	(. con setDoOutput true)
 	(with-open [out (PrintWriter. (OutputStreamWriter. (. con getOutputStream)))]
-	  (. out print (:params conf))
+	  (. out print (create-http-params (:params conf) context))
 	  (. out flush))) 
     (with-open [rdr (BufferedReader. (InputStreamReader. (. con getInputStream)))]
       (apply str (line-seq rdr))))))

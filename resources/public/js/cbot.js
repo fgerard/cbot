@@ -1,32 +1,38 @@
+"use strict";
+
 // jsROBOT Viewer
 // InterWare de Mexico, S.A. de C.V.
 // Felipe Gerard
 
-var cbotGlobal={};
-cbotGlobal.NV="unknown";
-cbotGlobal.lastUUID=cbotGlobal.NV;
-cbotGlobal.app=cbotGlobal.NV;
-cbotGlobal.inst=cbotGlobal.NV;
-cbotGlobal.states={};
-//cbotGlobal.idx2key=[];
-cbotGlobal.counter=0;
-cbotGlobal.monitoring=true;
+/*jslint 
+    indent: 2, browser: true, sloppy: true, vars: true, cap: false, plusplus: true, maxerr: 50 
+*/
 
-cbotGlobal.RUNNING_ROBOT=0;
-cbotGlobal.STOP_ROBOT=1;
-cbotGlobal.WAIT_ROBOT=2;
+var cbotGlobal = {};
+cbotGlobal.NV = "unknown";
+cbotGlobal.lastUUID = cbotGlobal.NV;
+cbotGlobal.app = cbotGlobal.NV;
+cbotGlobal.inst = cbotGlobal.NV;
+cbotGlobal.states = {};
+//cbotGlobal.idx2key = [];
+cbotGlobal.counter = 0;
+cbotGlobal.monitoring = true;
 
-cbotGlobal.lastState=null;
+cbotGlobal.RUNNING_ROBOT = 0;
+cbotGlobal.STOP_ROBOT = 1;
+cbotGlobal.WAIT_ROBOT = 2;
 
-cbotGlobal.etiqueta=[];
-cbotGlobal.etiqueta[0]="state";
-cbotGlobal.etiqueta[1]="result";
-cbotGlobal.etiqueta[2]="when";
-cbotGlobal.etiqueta[3]="delta-micro";
+cbotGlobal.lastState = null;
 
-cbotGlobal.oprDiags={};
+cbotGlobal.etiqueta = [];
+cbotGlobal.etiqueta[0] = "state";
+cbotGlobal.etiqueta[1] = "result";
+cbotGlobal.etiqueta[2] = "when";
+cbotGlobal.etiqueta[3] = "delta-micro";
 
-cbotGlobal.lastUUID=localUUID();
+cbotGlobal.oprDiags = {};
+
+cbotGlobal.lastUUID = localUUID();
 
 function localUUID() {
   return Raphael.createUUID();
@@ -34,29 +40,28 @@ function localUUID() {
 
 function instanceChange() {
   showRobot(-1);
-  cbotGlobal.inst=jQuery("#instances option:selected").text();
+  cbotGlobal.inst = jQuery("#instances option:selected").text();
   startMonitoring(true);
 }
 
-function fillSelect(json,tagLabel,globalName,changeFunc,nextFunc) {
-  var combo=jQuery(tagLabel).empty();
-  var selected=cbotGlobal.NV;
-
-  for (i=0; i<json.length; i+=1) {
-    if (i===0) {
-      combo.prepend('<option value="'+json[i]+'" selected="selected">'+json[i]+'</option>');
-      selected=json[i];
-    }
-    else {
-      combo.prepend('<option value="'+json[i]+'">'+json[i]+'</option>');
+function fillSelect(json, tagLabel, globalName, changeFunc, nextFunc) {
+  var combo = jQuery(tagLabel).empty();
+  var selected = cbotGlobal.NV;
+  var i;
+  for (i = 0; i < json.length; i += 1) {
+    if (i === 0) {
+      combo.prepend('<option value = "' + json[i] + '" selected = "selected">' + json[i] + '</option>');
+      selected = json[i];
+    } else {
+      combo.prepend('<option value = "' + json[i] + '">' + json[i] + '</option>');
     }
   }
   if (changeFunc) {
-    //combo.prepend("<option value='**NEW**'>**NEW**</option>")
+    //combo.prepend("<option value = '**NEW**'>**NEW**</option>")
     jQuery(tagLabel).change(changeFunc);
   }
   if (globalName) {
-    cbotGlobal[globalName]=selected;
+    cbotGlobal[globalName] = selected;
   }
   if (nextFunc) {
     nextFunc(selected);
@@ -65,29 +70,29 @@ function fillSelect(json,tagLabel,globalName,changeFunc,nextFunc) {
 }
 
 function fillInstances(instances) {
-  cbotGlobal.inst=fillSelect(instances,"#instances","inst",instanceChange,null );
+  cbotGlobal.inst = fillSelect(instances, "#instances", "inst", instanceChange, null);
 }
 
 function applicationChange() {
   showRobot(-1);
-  var app=jQuery("#applications option:selected").text();
+  var app = jQuery("#applications option:selected").text();
 
-  //if (app==="**NEW**") {
+  //if (app === "**NEW**") {
 // llena instances con **NEW** solamente
 // dialogo para datos generales de la app
   //}
 
-  cbotGlobal.app=app;
-  cbotGlobal.inst=cbotGlobal.NV;
+  cbotGlobal.app = app;
+  cbotGlobal.inst = cbotGlobal.NV;
   jQuery.ajax({
-    url: "/apps/"+app,
+    url: "/apps/" + app,
     dataType: "json",
     success: function (instancesStr) {
       fillInstances(instancesStr);
     }
   });
   jQuery.ajax({
-    url: "/conf/"+app,
+    url: "/conf/" + app,
     dataType: "json",
     success: buildWorkspace
   });
@@ -95,18 +100,19 @@ function applicationChange() {
 }
 
 function fillApplications(apps) {
-  if (apps.length>0) {
-    var app=fillSelect(apps,"#applications","app",
-                       applicationChange,function (selected) {
-      jQuery.ajax({
-        url: "/apps/"+selected,
-        dataType: "json",
-        success: fillInstances});
-    });
-    cbotGlobal.app=app;
-    cbotGlobal.inst=cbotGlobal.NV;
+  if (apps.length > 0) {
+    var app = fillSelect(apps, "#applications", "app",
+                       applicationChange, function (selected) {
+          jQuery.ajax({
+            url: "/apps/" + selected,
+            dataType: "json",
+            success: fillInstances
+          });
+        });
+    cbotGlobal.app = app;
+    cbotGlobal.inst = cbotGlobal.NV;
     jQuery.ajax({
-      url: "/conf/"+app,
+      url: "/conf/" + app,
       dataType: "json",
       success: buildWorkspace
     });
@@ -114,150 +120,158 @@ function fillApplications(apps) {
 }
 
 function fillOperations(oprs) {
-  fillSelect(oprs,"#operations");
+  fillSelect(oprs, "#operations");
 }
 
 function setMonitoring(monitoring) {
-  cbotGlobal.monitoring=monitoring;
+  cbotGlobal.monitoring = monitoring;
   if (!monitoring) {
     showRobot(-1);
   }
 }
 
-function each(set,fun) {
+function each(set, fun) {
   var i;
-  for (i=0;i<set.length;i++) {
+  for (i = 0; i < set.length; i++) {
     fun(set[i]);
   }
 }
 
-function removeArrows(state,otherKey) {
-  var removed=[];
-  var i=0;
-  for (i=0; i<state.statesOut.length; i++) {
-    if (state.statesOut[i]===otherKey || otherKey==="*") {
-      each(state.arrowsOut[i],function(elem){
-        elem.remove();
-      });
-      if (state.tipsOut[i]!==undefined) state.tipsOut[i].remove();
-      removed.push([state.key,state.statesOut[i]]);
+function removeArrows(state, otherKey) {
+  var removed = [];
+  var i = 0;
+  var remover = function (elem) {
+    elem.remove();
+  };
+  for (i = 0; i < state.statesOut.length; i++) {
+    if (state.statesOut[i] === otherKey || otherKey === "*") {
+      each(state.arrowsOut[i], remover);
+      if (state.tipsOut[i] !== undefined) {
+        state.tipsOut[i].remove();
+      }
+      removed.push([state.key, state.statesOut[i]]);
     }
   }
   return removed;
 }
 
 function getCenter(stateName) {
-  var state=cbotGlobal.states[stateName];
-  var bbox=state.r_t_i_set[0].getBBox();
-  var x=Math.floor(bbox.x+bbox.width/2);
-  var y=Math.floor(bbox.y+bbox.height/2);
-  return {"x":x, "y":y};
+  var state = cbotGlobal.states[stateName];
+  var bbox = state.r_t_i_set[0].getBBox();
+  var x = Math.floor(bbox.x + bbox.width / 2);
+  var y = Math.floor(bbox.y + bbox.height / 2);
+  return {"x": x, "y": y};
 }
 
-function createPathStr(from,to) {
-  var f=from;
-  var t=to;
-  return "M"+from.x+","+from.y+"L"+to.x+","+to.y;
+function createPathStr(from, to) {
+  return "M" + from.x + ", " + from.y + "L" + to.x + ", " + to.y;
 }
 
-cbotGlobal.dragging=false;
-cbotGlobal.connecting=false;
+cbotGlobal.dragging = false;
+cbotGlobal.connecting = false;
 
-function dragStateStart(evt) {
-  if (cbotGlobal.dragging || cbotGlobal.connecting) return;
-  var state=null;
-  if (this.group!==undefined) {
-    cbotGlobal.dragging=true;
-    state=cbotGlobal.states[this.group[0].key];
+function dragStateStart() {
+  if (cbotGlobal.dragging || cbotGlobal.connecting) {
+    return;
+  }
+  var state = null;
+  if (this.group !== undefined) {
+    cbotGlobal.dragging = true;
+    state = cbotGlobal.states[this.group[0].key];
   }
   if (state) {
     removeGlobal("connectImage");
     removeGlobal("connectingPath");
     var i;
-    for (i=0; i<state.r_t_i_set.length;i++) {
-      state.r_t_i_set[i].ox=parseInt(state.r_t_i_set[i].attrs.x,10);
-      state.r_t_i_set[i].oy=parseInt(state.r_t_i_set[i].attrs.y,10);
+    for (i = 0; i < state.r_t_i_set.length; i++) {
+      state.r_t_i_set[i].ox = parseInt(state.r_t_i_set[i].attrs.x, 10);
+      state.r_t_i_set[i].oy = parseInt(state.r_t_i_set[i].attrs.y, 10);
     }
 //desconectar elemento
-    var arrowsOut=removeArrows(state,"*");
-    var arrowsIn=[];
-    each(state.statesIn,function (name) {
-      var other=cbotGlobal.states[name];
-      var arrows=removeArrows(other,state.key);
-      each(arrows,function(par) {arrowsIn.push(par)});
+    var arrowsOut = removeArrows(state, "*");
+    var arrowsIn = [];
+    each(state.statesIn, function (name) {
+      var other = cbotGlobal.states[name];
+      var arrows = removeArrows(other, state.key);
+      each(arrows, function(par) {arrowsIn.push(par); });
     });
-    var pathsOut=[];
-    each(arrowsOut,function(par) {
-      var from=getCenter(par[0]); from.x0=from.x; from.y0=from.y;
-      var to=getCenter(par[1]); to.x0=to.x; to.y0=to.y;
-      pathsOut.push({"from": from,"to":to,"path":cbotGlobal.workspace.path(createPathStr(from,to)).toBack().attr({"stroke":"#c42530"})})
+    var pathsOut = [];
+    each(arrowsOut, function(par) {
+      var from = getCenter(par[0]); from.x0 = from.x; from.y0 = from.y;
+      var to = getCenter(par[1]); to.x0 = to.x; to.y0 = to.y;
+      pathsOut.push({"from": from, "to": to, "path": cbotGlobal.workspace.path(createPathStr(from, to)).toBack().attr({"stroke": "#c42530"})});
     });
-    var pathsIn=[];
-    each(arrowsIn,function(par) {
-      var from=getCenter(par[0]); from.x0=from.x; from.y0=from.y;
-      var to=getCenter(par[1]); to.x0=to.x; to.y0=to.y;
-      pathsIn.push({"from": from,"to":to,"path":cbotGlobal.workspace.path(createPathStr(from,to)).toBack().attr({"stroke":"#007eaf"})})
+    var pathsIn = [];
+    each(arrowsIn, function(par) {
+      var from = getCenter(par[0]); from.x0 = from.x; from.y0 = from.y;
+      var to = getCenter(par[1]); to.x0 = to.x; to.y0 = to.y;
+      pathsIn.push({"from": from, "to": to, "path": cbotGlobal.workspace.path(createPathStr(from, to)).toBack().attr({"stroke": "#007eaf"})});
     });
-    state.pathsOut=pathsOut;
-    state.pathsIn=pathsIn;
+    state.pathsOut = pathsOut;
+    state.pathsIn = pathsIn;
   }
 }
 
 function dragStateStop() {
-  if (!cbotGlobal.dragging || cbotGlobal.connecting) return;
-  var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
+  if (!cbotGlobal.dragging || cbotGlobal.connecting) {
+    return;
+  }
+  var state = null;
+  if (this.group !== undefined) {
+    state = cbotGlobal.states[this.group[0].key];
   }
   if (state) {
     var i;
-    for (i=0; i<state.r_t_i_set.length;i++) {
-      delete(state.r_t_i_set[i].ox);
-      delete(state.r_t_i_set[i].oy);
+    for (i = 0; i < state.r_t_i_set.length; i++) {
+      delete (state.r_t_i_set[i].ox);
+      delete (state.r_t_i_set[i].oy);
     }
-    cbotGlobal.conf.states[state.conf_idx].flow.x=state.r_t_i_set[0].attrs.x;
-    cbotGlobal.conf.states[state.conf_idx].flow.y=state.r_t_i_set[0].attrs.y;
-    each(state.pathsIn,function(info) {info.path.remove()});
-    each(state.pathsOut,function(info) {info.path.remove()});
-    reConnectStates(state,"*");
-    each(state.statesIn,function(name) {
-      var other=cbotGlobal.states[name];
-      reConnectStates(other,state.key);
+    cbotGlobal.conf.states[state.conf_idx].flow.x = state.r_t_i_set[0].attrs.x;
+    cbotGlobal.conf.states[state.conf_idx].flow.y = state.r_t_i_set[0].attrs.y;
+    each(state.pathsIn, function(info) {info.path.remove(); });
+    each(state.pathsOut, function(info) {info.path.remove(); });
+    reConnectStates(state, "*");
+    each(state.statesIn, function(name) {
+      var other = cbotGlobal.states[name];
+      reConnectStates(other, state.key);
     });
-    cbotGlobal.dragging=false;
+    cbotGlobal.dragging = false;
   }
 }
 
-function dragStateMove(dx,dy) {
-  if (!cbotGlobal.dragging || cbotGlobal.connecting) return;
-  var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
+
+function dragStateMove(dx, dy) {
+  if (!cbotGlobal.dragging || cbotGlobal.connecting) {
+    return;
+  }
+  var state = null;
+  if (this.group !== undefined) {
+    state = cbotGlobal.states[this.group[0].key];
   }
   if (state) {
     var x;
-    for (x=0; x<state.r_t_i_set.length; x++) {
-      var obj=state.r_t_i_set[x];
+    for (x = 0; x < state.r_t_i_set.length; x++) {
+      var obj = state.r_t_i_set[x];
       obj.attr({ x: obj.ox + dx, y: obj.oy + dy });
     }
-    each(state.pathsOut,function(info) {
-      info.from.x=info.from.x0+dx;
-      info.from.y=info.from.y0+dy;
-      info.path.attr({"path": createPathStr(info.from,info.to)});
+    each(state.pathsOut, function(info) {
+      info.from.x = info.from.x0 + dx;
+      info.from.y = info.from.y0 + dy;
+      info.path.attr({"path": createPathStr(info.from, info.to)});
     });
-    each(state.pathsIn,function(info) {
-      info.to.x=info.to.x0+dx;
-      info.to.y=info.to.y0+dy;
-      info.path.attr({"path": createPathStr(info.from,info.to)});
+    each(state.pathsIn, function(info) {
+      info.to.x = info.to.x0 + dx;
+      info.to.y = info.to.y0 + dy;
+      info.path.attr({"path": createPathStr(info.from, info.to)});
     });
   }
 }
 
 function startInstance(instName) {
   jQuery.ajax({
-    url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
+    url: "/apps/" + cbotGlobal.app + "/" + cbotGlobal.inst,
     //dataType: "json",
-    data: {"cmd":"start"},
+    data: {"cmd": "start"},
     success: function(result) {
       jQuery("#result-str").text(result);
       startMonitoring(false);
@@ -268,24 +282,24 @@ function startInstance(instName) {
 
 function stopInstance(instName) {
   jQuery.ajax({
-    url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
+    url: "/apps/" + cbotGlobal.app + "/" + cbotGlobal.inst,
     //dataType: "json",
-    data: {"cmd":"stop"},
+    data: {"cmd": "stop"},
     success: function(result) {
       jQuery("#result-str").text(result);
-      startMonitoring(false);  
+      startMonitoring(false);
     }
   });
   jQuery("#stop-button").hide();
 }
 
 function resumeInstance(instName) {
-  var msg=jQuery("#resume-msg").val();
+  var msg = jQuery("#resume-msg").val();
   jQuery.ajax({
-    url: "/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
+    url: "/apps/" + cbotGlobal.app + "/" + cbotGlobal.inst,
     //dataType: "json",
-    data: {"cmd":"resume",
-           "msg":msg},
+    data: {"cmd": "resume",
+           "msg": msg},
     success: function(result) {
       jQuery("#result-str").text(result);
       startMonitoring(false);
@@ -297,14 +311,14 @@ function resumeInstance(instName) {
 function saveStates() {
   jQuery.ajax({
     type: "POST",
-    url: "/store/"+cbotGlobal.app,
+    url: "/store/" + cbotGlobal.app,
     dataType: "json",
-    data:{"conf":cbotGlobal.conf},
+    data: {"conf": cbotGlobal.conf},
     success: function(result) {
-      applicationChange(); 
+      applicationChange();
       setMonitoring(true);
       startMonitoring(true);
-      //alert("result:"+result.result);
+      //alert("result:" + result.result);
     }
   });
 }
@@ -313,447 +327,389 @@ function saveStates() {
 
 
 
-Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
-    var angle = Math.atan2(x1-x2,y2-y1);
-    angle = (angle / (2 * Math.PI)) * 360;
-    var cx=(x1+x2)/2;
-    var cy=(y1+y2)/2;
-    var arrowPath = this.path("M" + cx + " " + cy + " L" + (cx - size) + " " 
-                             + (cy - size) + " L" + (cx - size) + " " + (cy + size) 
-                             + " L" + cx + " " 
-                             + cy ).attr("fill","black").rotate((90+angle),cx,cy).toBack();
-    var linePath = this.path("M" + x1 + " " + y1 + " L" + x2 + " " + y2).toBack();
-    return [linePath,arrowPath];
-}
-
-/*
-Array.fn.insert = function(value) {
-  var i;
-  for (i=this.length; i>0; i--) {
-    this[i]=this[i-1];
-  }
-  this[0]=value;
+Raphael.fn.arrow  =  function (x1, y1, x2, y2, size) {
+  var angle  =  Math.atan2(x1 - x2, y2 - y1);
+  angle  =  (angle / (2 * Math.PI)) * 360;
+  var cx = (x1 + x2) / 2;
+  var cy = (y1 + y2) / 2;
+  var arrowPath  =  this.path("M" + cx + " " + cy + " L" + (cx - size) + " " + (cy - size) + " L" + (cx - size) + " " + (cy + size) + " L" + cx + " " + cy ).attr("fill", "black").rotate((90 + angle), cx, cy).toBack();
+  var linePath  =  this.path("M" + x1 + " " + y1 + " L" + x2 + " " + y2).toBack();
+  return [linePath, arrowPath];
 };
 
-
-Array.method("insert",function (value){
+function connectInConf(state, other, regExp) {
+  var idx = state.conf_idx;
+  var connectArr = cbotGlobal.conf.states[idx].flow.connect;
   var i;
-  for (i=this.length; i>0; i--) {
-    this[i]=this[i-1];
+  if (connectArr === undefined) {
+    connectArr = [];
+    cbotGlobal.conf.states[idx].flow.connect = connectArr;
   }
-  this[0]=value;
-});
-*/
-
-function connectInConf(state,other,regExp) {
-  var idx=state.conf_idx;
-  var connectArr=cbotGlobal.conf.states[idx].flow.connect;
-  var i;
-  if (connectArr===undefined) {
-    connectArr=[];
-    cbotGlobal.conf.states[idx].flow.connect=connectArr;
-  }
-  if (connectArr.length===0) {
+  if (connectArr.length === 0) {
     connectArr.unshift(other.key);
-  }
-  else {
+  } else {
     connectArr.unshift(regExp);
     connectArr.unshift(other.key);
   }
 }
 
 function clearEvents() {
-  var state=cbotGlobal.states[":pagina"];
+  var state = cbotGlobal.states[":pagina"];
   state.r_t_i_set.unmouseover(mouseIsOver);
   state.r_t_i_set.unmouseout(mouseIsOut);
-  //removeArrows(state,"*");
+  //removeArrows(state, "*");
 
   //var i;
-  //for (i=0; i<state.arrowsOut.length;i++) {
+  //for (i = 0; i<state.arrowsOut.length;i++) {
     //state.arrowsOut[i][0].remove();
   //}
 }
 
-function connectingStart(x,y,event) {
-  if (cbotGlobal.connecting) return;
-  cbotGlobal.connecting=true;
+function connectingStart(x, y, event) {
+  if (cbotGlobal.connecting) {
+    return;
+  }
+  cbotGlobal.connecting = true;
 
-  var bbox=cbotGlobal.connectImageBBOX;
-  cbotGlobal.offsetX=event.offsetX-(bbox.x+bbox.width);
-  cbotGlobal.offsetY=event.offsetY-(bbox.y+bbox.height);
-  cbotGlobal.connectingPath=cbotGlobal.workspace.path("M"+(bbox.x+bbox.width)+" "+(bbox.y+bbox.height)); //+"l0 0"
+  var bbox = cbotGlobal.connectImageBBOX;
+  cbotGlobal.offsetX = event.offsetX - (bbox.x + bbox.width);
+  cbotGlobal.offsetY = event.offsetY - (bbox.y + bbox.height);
+  cbotGlobal.connectingPath = cbotGlobal.workspace.path("M" + (bbox.x + bbox.width) + " " + (bbox.y + bbox.height)); // + "l0 0"
 }
 
 function connectingStop() {
-  cbotGlobal.workspace.renderfix(); 
+  cbotGlobal.workspace.renderfix();
   cbotGlobal.connectingPath.remove();
-  if (cbotGlobal.otherState!==null) {
-    var state=cbotGlobal.connectingState;
-    var other=cbotGlobal.otherState;
-    if (contains(state.statesOut,other.key)>=0) {//ya esta conectado !!
-    }
-    else {
-      //alert("connecting "+state.key+" -> "+other.key);
-      connectInConf(state,other,"undefined"); 
-      //connect(state,other,1,"undefined");
-      removeArrows(state,"*");
+  if (cbotGlobal.otherState !== null) {
+    var state = cbotGlobal.connectingState;
+    var other = cbotGlobal.otherState;
+    if (contains(state.statesOut, other.key) < 0) {
+      //alert("connecting " + state.key + " -> " + other.key);
+      connectInConf(state, other, "undefined");
+      //connect(state, other,1, "undefined");
+      removeArrows(state, "*");
       state.statesOut.unshift(other.key);
-      reConnectStates(state,"*");
+      reConnectStates(state, "*");
       other.statesIn.push(state.key);
-    }  
+    }
   }
   removeGlobal("otherGlow");
   cbotGlobal.connectingPath.remove();
-  cbotGlobal.connectingPath=null;
+  cbotGlobal.connectingPath = null;
   cbotGlobal.connectImage.remove();
-  cbotGlobal.connectImage=null;
-  cbotGlobal.connectImageBBOX=null;
-  cbotGlobal.otherState=null;
-  cbotGlobal.connecting=false;
+  cbotGlobal.connectImage = null;
+  cbotGlobal.connectImageBBOX = null;
+  cbotGlobal.otherState = null;
+  cbotGlobal.connecting = false;
 }
 
-function connectingMove(dx,dy) {
-  var bbox=cbotGlobal.connectImageBBOX;
-  cbotGlobal.connectingPath.attr({"path":"M"+(bbox.x+bbox.width)+" "+(bbox.y+bbox.height)+"l"+(dx+cbotGlobal.offsetX)+" "+(dy+cbotGlobal.offsetY)});
+function connectingMove(dx, dy) {
+  var bbox = cbotGlobal.connectImageBBOX;
+  cbotGlobal.connectingPath.attr({"path": "M" + (bbox.x + bbox.width) + " " + (bbox.y + bbox.height) + "l" + (dx + cbotGlobal.offsetX) + " " + (dy + cbotGlobal.offsetY)});
 }
 
-function contains(arr,elem) {
+function contains(arr, elem) {
   var i;
-  for (i=0; i<arr.length; i++) {
-    if (arr[i]===elem) {
+  for (i = 0; i < arr.length; i++) {
+    if (arr[i] === elem) {
       return i;
     }
   }
   return -1;
 }
 
-cbotGlobal.connectImage=null;
-cbotGlobal.connectingPath=null;
-cbotGlobal.connectImageBBOX=null;
-cbotGlobal.connectingState=null;
-cbotGlobal.otherState=null;
+cbotGlobal.connectImage = null;
+cbotGlobal.connectingPath = null;
+cbotGlobal.connectImageBBOX = null;
+cbotGlobal.connectingState = null;
+cbotGlobal.otherState = null;
 
-cbotGlobal.otherGlow=null;
+cbotGlobal.otherGlow = null;
 
 function removeGlobal(name) {
-  if (cbotGlobal[name]!==null) {
+  if (cbotGlobal[name] !== null) {
     cbotGlobal[name].remove();
-    cbotGlobal[name]=null;
+    cbotGlobal[name] = null;
   }
 }
 
 function mouseIsOver() {
-  if (cbotGlobal.dragging) return; 
-  if (cbotGlobal.connectImage!==null) {
-    if (cbotGlobal.connectingPath!==null) {
-      if (cbotGlobal.connectImageBBOX!==this.group[0].getBBox()) {
+  if (cbotGlobal.dragging) {
+    return;
+  }
+  if (cbotGlobal.connectImage !== null) {
+    if (cbotGlobal.connectingPath !== null) {
+      if (cbotGlobal.connectImageBBOX !== this.group[0].getBBox()) {
         // estamos conectando y ahora sobre OTRO estado
-        cbotGlobal.otherState=cbotGlobal.states[this.group[0].key];
+        cbotGlobal.otherState = cbotGlobal.states[this.group[0].key];
         removeGlobal("otherGlow");
-        cbotGlobal.otherGlow=this.group[0].glow();
+        cbotGlobal.otherGlow = this.group[0].glow();
+        return;
+      } else {
+        removeGlobal("otherGlow");
+        cbotGlobal.otherState = null;
         return;
       }
-      else {
-        removeGlobal("otherGlow");
-        cbotGlobal.otherState=null;
-        return;
-      }
-    }
-    else {
+    } else {
       removeGlobal("connectImage");
     }
   }
-  var bbox=this.group[0].getBBox();
-  var p=cbotGlobal.workspace.path("M"+(bbox.x+bbox.width)+" "+(bbox.y+bbox.height)+"l -6 -2 -6 2 2 -6 -4 -2 4 -2 -2 -6 6 2 6 -2 -2 6 4 2 -4 2 z").attr({"fill":"#ff0000"});
-  cbotGlobal.connectImage=p
-  cbotGlobal.connectImageBBOX=bbox;
-  cbotGlobal.connectImage.drag(connectingMove,connectingStart,connectingStop);
-  cbotGlobal.connectingState=cbotGlobal.states[this.group[0].key];
+  var bbox = this.group[0].getBBox();
+  var p = cbotGlobal.workspace.path("M" + (bbox.x + bbox.width) + " " + (bbox.y + bbox.height) + "l -6 -2 -6 2 2 -6 -4 -2 4 -2 -2 -6 6 2 6 -2 -2 6 4 2 -4 2 z").attr({"fill": "#ff0000"});
+  cbotGlobal.connectImage = p;
+  cbotGlobal.connectImageBBOX = bbox;
+  cbotGlobal.connectImage.drag(connectingMove, connectingStart, connectingStop);
+  cbotGlobal.connectingState = cbotGlobal.states[this.group[0].key];
 }
 
 function mouseIsOut() {
-  if (this.type="rect") {
+  if (this.type === "rect") {
     removeGlobal("otherGlow");
-    cbotGlobal.otherState=null;
+    cbotGlobal.otherState = null;
   }
 }
 
-function setTimeoutOpr(confState,div) {
+function setTimeoutOpr(confState, div) {
   div.find("#timeout").val(confState["conf-map"].timeout);
   div.find("#retry-delay").val(confState["conf-map"]["retry-delay"]);
   div.find("#retry-count").val(confState["conf-map"]["retry-count"]);
 }
 
-function getWithDefault(mapa,path,defaultValue) {
+function getWithDefault(mapa, path, defaultValue) {
   var i;
-  var value=mapa;
-  for (i=0; i<path.length; i++) {
-    value=value[path[i]];
-    if (value===undefined) return defaultValue;
+  var value = mapa;
+  for (i = 0; i < path.length; i++) {
+    value = value[path[i]];
+    if (value === undefined) {
+      return defaultValue;
+    }
   }
   return value;
 }
 
-cbotGlobal.oprSetFunc={};
+cbotGlobal.oprSetFunc = {};
 
-cbotGlobal.oprSetFunc["sleep-opr"]=function (state,confState) {
-  var div=$("#sleep-oprDialog");
+cbotGlobal.oprSetFunc["sleep-opr"] = function (state, confState) {
+  var div = $("#sleep-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#delta").val(getWithDefault(confState,["conf-map","conf","delta"],"1000"));
-}
+  div.find("#delta").val(getWithDefault(confState, ["conf-map", "conf", "delta"], "1000"));
+};
 
-cbotGlobal.oprSetFunc["socket-opr"]=function(state,confState) {
-  var div=$("#socket-oprDialog");
+cbotGlobal.oprSetFunc["socket-opr"] = function(state, confState) {
+  var div = $("#socket-oprDialog");
   div.find("#state-name").val(state.key);
-  setTimeoutOpr(confState,div);
-  div.find("#host").val(getWithDefault(confState,["conf-map","conf","host"],"localhost"));
-  div.find("#port").val(getWithDefault(confState,["conf-map","conf","port"]),"22");
-}
+  setTimeoutOpr(confState, div);
+  div.find("#host").val(getWithDefault(confState, ["conf-map", "conf", "host"], "localhost"));
+  div.find("#port").val(getWithDefault(confState, ["conf-map", "conf", "port"], "22"));
+};
 
-cbotGlobal.oprSetFunc["human-opr"]=function(state,confState) {
-  var div=$("#human-oprDialog");
+cbotGlobal.oprSetFunc["human-opr"] = function(state, confState) {
+  var div = $("#human-oprDialog");
   div.find("#state-name").val(state.key);
-}
+};
 
-cbotGlobal.oprSetFunc["switch-good-opr"]=function(state,confState) {
-  var div=$("#switch-good-oprDialog");
+cbotGlobal.oprSetFunc["switch-good-opr"] = function(state, confState) {
+  var div = $("#switch-good-oprDialog");
   div.find("#state-name").val(state.key);
-}
+};
 
-cbotGlobal.oprSetFunc["switch-bad-opr"]=function(state,confState) {
-  var div=$("#switch-bad-oprDialog");
+cbotGlobal.oprSetFunc["switch-bad-opr"] = function(state, confState) {
+  var div = $("#switch-bad-oprDialog");
   div.find("#state-name").val(state.key);
-  var minutes2wait=getWithDefault(confState,["conf-map","conf","minutes2wait"],"5");
+  var minutes2wait = getWithDefault(confState, ["conf-map", "conf", "minutes2wait"], "5");
   div.find("#minutes2wait").val(minutes2wait);
-}
+};
 
-cbotGlobal.oprSetFunc["log-opr"]=function(state,confState) {
-  var div=$("#log-oprDialog");
+cbotGlobal.oprSetFunc["log-opr"] = function(state, confState) {
+  var div = $("#log-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#text").val(getWithDefault(confState,["conf-map","conf","text"],""));
-  var lev=getWithDefault(confState,["conf-map","conf","level"],":debug");
-  var kkk=div.find("#log-levels").find("option").each(function(){
-    var tkt=$(this).val();
-    this.selected=$(this).val()===lev;
+  div.find("#text").val(getWithDefault(confState, ["conf-map", "conf", "text"], ""));
+  var lev = getWithDefault(confState, ["conf-map", "conf", "level"], ":debug");
+  var kkk = div.find("#log-levels").find("option").each(function() {
+    this.selected = $(this).val() === lev;
   });
-}
+};
 
-cbotGlobal.oprSetFunc["print-msg-opr"]=function (state,confState) {
-  var div=$("#print-msg-oprDialog");
+cbotGlobal.oprSetFunc["print-msg-opr"] = function (state, confState) {
+  var div = $("#print-msg-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#msg").val(getWithDefault(confState["conf-map","conf","msg"],""));
-}
+  div.find("#msg").val(getWithDefault(confState, ["conf-map", "conf", "msg"], ""));
+};
 
-cbotGlobal.oprSetFunc["print-context-opr"]=function (state,confState) {
-  var div=$("#print-context-oprDialog");
+cbotGlobal.oprSetFunc["print-context-opr"] = function (state, confState) {
+  var div = $("#print-context-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#filter-re").val(getWithDefault(confState,["conf-map","conf","filter-re"],".*"));
-}
+  div.find("#filter-re").val(getWithDefault(confState, ["conf-map", "conf", "filter-re"], ".*"));
+};
 
-cbotGlobal.oprSetFunc["get-http-opr"]=function (state,confState) {
-  var div=$("#get-http-oprDialog");
+cbotGlobal.oprSetFunc["get-http-opr"] = function (state, confState) {
+  var div = $("#get-http-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#url").val(getWithDefault(confState,["conf-map","conf","url"],"http://"));
-}
+  div.find("#url").val(getWithDefault(confState, ["conf-map", "conf", "url"], "http://"));
+};
 
-cbotGlobal.oprSetFunc["post-http-opr"]=function (state,confState) {
-  var div=$("#post-http-oprDialog");
+cbotGlobal.oprSetFunc["post-http-opr"] = function (state, confState) {
+  var div = $("#post-http-oprDialog");
   div.find("#state-name").val(state.key);
-  var kkk=div.find("#state-name").val();
-  div.find("#url").val(getWithDefault(confState,["conf-map","conf","url"],"http://"));
-  div.find("#params").val(getWithDefault(confState,["conf-map","conf","params"],"name=value\nname=value"));
-}
+  var kkk = div.find("#state-name").val();
+  div.find("#url").val(getWithDefault(confState, ["conf-map", "conf", "url"], "http://"));
+  div.find("#params").val(getWithDefault(confState, ["conf-map", "conf", "params"], "name = value\nname = value"));
+};
 
-cbotGlobal.oprSetFunc["clojure-opr"]=function (state,confState) {
-  var div=$("#clojure-oprDialog");
+cbotGlobal.oprSetFunc["clojure-opr"] = function (state, confState) {
+  var div = $("#clojure-oprDialog");
   div.find("#state-name").val(state.key);
-  div.find("#code").val(getWithDefault(confState,["conf-map","conf","code"],""));
-}
+  div.find("#code").val(getWithDefault(confState, ["conf-map", "conf", "code"], ""));
+};
 
 function updateState() {
-  var state=cbotGlobal.states[this.group[0].key];
-  var confState=cbotGlobal.conf.states[state.conf_idx];
-  var opr=confState["conf-map"].opr;
-  cbotGlobal.oprSetFunc[opr](state,confState);
+  var state = cbotGlobal.states[this.group[0].key];
+  var confState = cbotGlobal.conf.states[state.conf_idx];
+  var opr = confState["conf-map"].opr;
+  cbotGlobal.oprSetFunc[opr](state, confState);
   getDialog4Opr(opr).dialog("open");
 }
 
-function buildState(index,state) {  
-  var txt=cbotGlobal.workspace.text(75,50,state.key);
-  var icono=cbotGlobal.workspace.image("/images/"+state["conf-map"].opr+".gif",40,50,15,15);
-  var g=cbotGlobal.workspace.set(txt,icono);
-  var bbox=g.getBBox();
-  var rect=cbotGlobal.workspace.rect(bbox.x-8,bbox.y-2,bbox.width+16,bbox.height+4,8);
+function buildState(index, state) {
+  var txt = cbotGlobal.workspace.text(75, 50, state.key);
+  var icono = cbotGlobal.workspace.image("/images/" + state["conf-map"].opr + ".gif", 40, 50, 15, 15);
+  var g = cbotGlobal.workspace.set(txt, icono);
+  var bbox = g.getBBox();
+  var rect = cbotGlobal.workspace.rect(bbox.x - 8, bbox.y - 2, bbox.width + 16, bbox.height + 4, 8);
   rect.attr({"stroke": "#007eaf",
              "stroke-width": 3,
-             "fill": "#bbbbbb"}).toBack();  
-  g=cbotGlobal.workspace.set(rect,txt,icono);//.data("dim",rect.getBBox());
-  g.attr({x:parseInt(state.flow.x,10), y:parseInt(state.flow.y,10)});
-  g[1].attr({x: parseInt(g[1].attrs.x,10)+15+bbox.width/2,
-             y: parseInt(g[1].attrs.y,10)+18}).toFront();
-  g[2].attr({x: parseInt(g[2].attrs.x,10)+4,
-             y: parseInt(g[2].attrs.y,10)+7}).toFront();
-            
-//  rect.idx=cbotGlobal.idx2key.length;//le pegamos su indice al rect
-//  cbotGlobal.idx2key.push(state.key);
-  rect.key=state.key; 
-
-//  g[0].glower=g[0];
-  g[0].group=g
-//  g[0].connectOpr=false; // initialy is dragging
-//  g[2].glower=g[2];
-  g[2].group=g;
-  g[1].group=g;
-//  g[1].glower=g[0];
-  
-  //para el drag!!
-  
-  cbotGlobal.states[state.key]={"key":state.key,
-                                "r_t_i_set": g, 
-                                "conf_idx": index, 
+             "fill": "#bbbbbb"}).toBack();
+  g = cbotGlobal.workspace.set(rect, txt, icono);//.data("dim", rect.getBBox());
+  g.attr({x: parseInt(state.flow.x, 10), y: parseInt(state.flow.y, 10)});
+  g[1].attr({x: parseInt(g[1].attrs.x, 10) + 15 + bbox.width / 2,
+             y: parseInt(g[1].attrs.y, 10) + 18}).toFront();
+  g[2].attr({x: parseInt(g[2].attrs.x, 10) + 4,
+             y: parseInt(g[2].attrs.y, 10) + 7}).toFront();
+  rect.key = state.key;
+  g[0].group = g;
+  g[2].group = g;
+  g[1].group = g;
+  cbotGlobal.states[state.key] = {"key": state.key,
+                                "r_t_i_set": g,
+                                "conf_idx": index,
                                 "statesOut": [],
                                 "arrowsOut": [],
                                 "tipsOut": [],
                                 "statesIn": []//, "glowArrow":null
                               };//statesIn los nombres
-                                                //de los estados que salen hacia ACA
-
-  g.drag(dragStateMove,dragStateStart,dragStateStop);
-  //g.click(editStateConf);
-
-  //g[0].hover(glowIcon,unGlowIcon);
+                                //de los estados que salen hacia ACA
+  g.drag(dragStateMove, dragStateStart, dragStateStop);
   g.mouseover(mouseIsOver);
   g.mouseout(mouseIsOut);
   g.dblclick(updateState);
-/*
-  g.dblclick(function(){
-    if (cbotGlobal.connectImage !== null) {
-      cbotGlobal.connectImage.remove();
-      cbotGlobal.connectImage=null;
-    }
-    else {
-      var g=this.glower.glow();
-      cbotGlobal.connectImage=g; 
-      this.group[0].connectOpr=this.type==="image"; //connecting or dragging
-    }
-  });
-  */
   return g;
 }
 
-function labelIt(x,y,txt,elem) {
-  var condition=cbotGlobal.workspace.text(x,y,txt);
-  var bbox=condition.getBBox();
-  var rr=cbotGlobal.workspace.rect(bbox.x-2,bbox.y-2,bbox.width+4,bbox.height+4);
+function labelIt(x, y, txt, elem) {
+  var condition = cbotGlobal.workspace.text(x, y, txt);
+  var bbox = condition.getBBox();
+  var rr = cbotGlobal.workspace.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
   rr.attr({fill: "#fff"});
-  var tip=cbotGlobal.workspace.set(rr,condition);
+  var tip = cbotGlobal.workspace.set(rr, condition);
   tip.attr({opacity: 0}).toBack();//toFront();    
   elem.hover(function() {
-    tip.toFront().animate({opacity: 1}, 500)
-  },function() {
-    tip.animate({opacity: 0}, 500).toBack()
+    tip.toFront().animate({opacity: 1}, 500);
+  }, function() {
+    tip.animate({opacity: 0}, 500).toBack();
   });
   return tip;
 }
 
-cbotGlobal.glowArrow=null;
+cbotGlobal.glowArrow = null;
 
-function connectUsing(index,state,other,outNum,tipTxt) {
-  var pt=[parseInt(state.r_t_i_set[0].attrs.x,10)+state.r_t_i_set[0].attrs.width/2,
-      parseInt(state.r_t_i_set[0].attrs.y,10)+state.r_t_i_set[0].attrs.height/2,
-      parseInt(other.r_t_i_set[0].attrs.x,10)+other.r_t_i_set[0].attrs.width/2,
-      parseInt(other.r_t_i_set[0].attrs.y,10)+other.r_t_i_set[0].attrs.height/2]
+function connectUsing(index, state, other, outNum, tipTxt) {
+  var pt = [parseInt(state.r_t_i_set[0].attrs.x, 10) + state.r_t_i_set[0].attrs.width / 2,
+      parseInt(state.r_t_i_set[0].attrs.y, 10) + state.r_t_i_set[0].attrs.height / 2,
+      parseInt(other.r_t_i_set[0].attrs.x, 10) + other.r_t_i_set[0].attrs.width / 2,
+      parseInt(other.r_t_i_set[0].attrs.y, 10) + other.r_t_i_set[0].attrs.height / 2];
   var i;
-  for (i=0; i<pt.length; i++) {
-    pt[i]=Math.floor(pt[i]);
+  for (i = 0; i < pt.length; i++) {
+    pt[i] = Math.floor(pt[i]);
   }
-  var arr=cbotGlobal.workspace.arrow(pt[0],pt[1],pt[2],pt[3],4);
-  arr[1].data("state",state);
-  arr[1].data("other",other);
+  var arr = cbotGlobal.workspace.arrow(pt[0], pt[1], pt[2], pt[3], 4);
+  arr[1].data("state", state);
+  arr[1].data("other", other);
   arr[1].hover(function() {
-    //state.glowArrow=arr[1].glow();
+    //state.glowArrow = arr[1].glow();
     removeGlobal("glowArrow");
-    cbotGlobal.glowArrow=this.glow();
+    cbotGlobal.glowArrow = this.glow();
   }, function() {
     //state.glowArrow.remove();
     removeGlobal("glowArrow");
   });
   arr[1].click(function(evt) {
-    var state=this.data("state");
-    var other=this.data("other");
-    var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
-    var i=connectArr.length-1;
-    while (connectArr[i]!==other.key && i>=0) i-=2;
-    if (i>=0) {
-      if (i===(connectArr.length-1)) {
-        jQuery("#regexp").val("default (do not change)").attr({disabled:true});
+    var state = this.data("state");
+    var other = this.data("other");
+    var connectArr = cbotGlobal.conf.states[state.conf_idx].flow.connect;
+    var i = connectArr.length - 1;
+    while (connectArr[i] !== other.key && i >= 0) {
+      i -= 2;
+    }
+    if (i >= 0) {
+      if (i === (connectArr.length - 1)) {
+        jQuery("#regexp").val("default (do not change)").attr({disabled: true});
+      } else {
+        jQuery("#regexp").val(connectArr[i + 1]).attr({disabled: false});
       }
-      else {
-        jQuery("#regexp").val(connectArr[i+1]).attr({disabled:false});
-      }        
       $("#arrowStateName").val(state.key);
       $("#arrowOtherStateName").val(other.key);
       //$("#arrowConfIdx").val(state.conf_idx);
-      $("#arrowCnctIdx").val(i+1);
+      $("#arrowCnctIdx").val(i + 1);
       cbotGlobal.arrowDialog.dialog("open");
-      //alert("rr="+$("#regexp"));      
-    }
-    else {
+      //alert("rr = " + $("#regexp"));      
+    } else {
       alert("esto no puede pasar!");
     }
-    
-/*    jQuery("#arrowDialog").simpleDialog({
-      showCloseLabel:false,
-      open: function() {alert("open")},
-      close:function() {alert("close")}
-    });*/
   });
-  var tip=labelIt((pt[0]+pt[2])/2,
-                  (pt[1]+pt[3])/2,
-                  outNum+" ["+tipTxt+"]",
+  var tip = labelIt((pt[0] + pt[2]) / 2,
+                  (pt[1] + pt[3]) / 2,
+                  outNum + " [" + tipTxt + "]",
                   state.r_t_i_set);
-  if (index<0) {
+  if (index < 0) {
     state.statesOut.push(other.key);
     state.arrowsOut.push(arr);
     state.tipsOut.push(tip);
     other.statesIn.push(state.key);
-  }
-  else {
-    state.arrowsOut[index]=arr;
-    state.tipsOut[index]=tip;
-    
+  } else {
+    state.arrowsOut[index] = arr;
+    state.tipsOut[index] = tip;
   }
 }
 
-function reConnectStates(state,otherName) {
+function reConnectStates(state, otherName) {
   var i;
-  for (i=0;i<state.statesOut.length;i++) {
-    var other=cbotGlobal.states[state.statesOut[i]];
-    if (other.key===otherName || otherName==="*") {
-      var tipTxt=cbotGlobal.conf.states[state.conf_idx].flow.connect[i*2+1]!==undefined?
-        cbotGlobal.conf.states[state.conf_idx].flow.connect[i*2+1]:"default";
-      connectUsing(i,state,other,i+1,tipTxt)
+  for (i = 0; i < state.statesOut.length; i++) {
+    var other = cbotGlobal.states[state.statesOut[i]];
+    if (other.key === otherName || otherName === "*") {
+      var tipTxt = cbotGlobal.conf.states[state.conf_idx].flow.connect[i * 2 + 1] !== undefined ?
+            cbotGlobal.conf.states[state.conf_idx].flow.connect[i * 2 + 1] : "default";
+      connectUsing(i, state, other, i + 1, tipTxt);
     }
   }
 }
 
-function connect(state,other,outNum,tipTxt) {
-  connectUsing(-1,state,other,outNum,tipTxt);
+function connect(state, other, outNum, tipTxt) {
+  connectUsing(-1, state, other, outNum, tipTxt);
 }
 
 function connectStates() {
-  var i,j;
-  var state,other;
+  var i, j;
+  var state, other;
   var connectArr;
-  var confStates=cbotGlobal.conf.states;
-  for (i=0; i<confStates.length; i+=1) {
-    state=cbotGlobal.states[confStates[i].key];
-    connectArr=confStates[i].flow.connect;// i es === a state.conf_idx
-    if (connectArr!==undefined) {
-      for (j=0; j<connectArr.length; j+=2) {
-        other=cbotGlobal.states[connectArr[j]];
-        connect(state,other,Math.floor(j/2+1),
-                connectArr[j+1]!==undefined?connectArr[j+1]:"default");
+  var confStates = cbotGlobal.conf.states;
+  for (i = 0; i < confStates.length; i += 1) {
+    state = cbotGlobal.states[confStates[i].key];
+    connectArr = confStates[i].flow.connect;// i es  ===  a state.conf_idx
+    if (connectArr !== undefined) {
+      for (j = 0; j < connectArr.length; j += 2) {
+        other = cbotGlobal.states[connectArr[j]];
+        connect(state, other, Math.floor(j / 2 + 1),
+                connectArr[j + 1] !== undefined ? connectArr[j + 1] : "default");
       }
     }
   }
@@ -764,21 +720,21 @@ function buildWorkspace(conf) {
   var i;
   removeGlobal("connectImage");
   removeGlobal("connectingPath");
-  cbotGlobal.conf=conf;
+  cbotGlobal.conf = conf;
   //jQuery("#states").empty();
   cbotGlobal.workspace.clear();
 
-  var rStart=cbotGlobal.workspace.image("/images/robot-start.gif",100,100,15,15).toFront().attr({opacity: 0});  
-  var rStop=cbotGlobal.workspace.image("/images/robot-stop.gif",100,100,15,15).toFront().attr({opacity: 0});
-  var rWaiting=cbotGlobal.workspace.image("/images/robot-waiting.gif",100,100,15,15).toFront().attr({opacity: 1});  
-  var robot=cbotGlobal.workspace.set(rStart,rStop,rWaiting);
-  cbotGlobal.robot=robot;
+  var rStart = cbotGlobal.workspace.image("/images/robot-start.gif", 100, 100, 15, 15).toFront().attr({opacity: 0});
+  var rStop = cbotGlobal.workspace.image("/images/robot-stop.gif", 100, 100, 15, 15).toFront().attr({opacity: 0});
+  var rWaiting = cbotGlobal.workspace.image("/images/robot-waiting.gif", 100, 100, 15, 15).toFront().attr({opacity: 1});
+  var robot = cbotGlobal.workspace.set(rStart, rStop, rWaiting);
+  cbotGlobal.robot = robot;
 
 
-  cbotGlobal.states={};
-  //cbotGlobal.idx2key=[];
-  for (i=0; i<conf.states.length; i+=1) {
-    buildState(i,conf.states[i]);
+  cbotGlobal.states = {};
+  //cbotGlobal.idx2key = [];
+  for (i = 0; i < conf.states.length; i += 1) {
+    buildState(i, conf.states[i]);
   }
   connectStates();
   //setTimeout(function() {connectStates()},30);
@@ -786,98 +742,81 @@ function buildWorkspace(conf) {
 
 function startMonitoring(newUUID) {
   if (cbotGlobal.monitoring) {
-    if (newUUID) cbotGlobal.lastUUID=localUUID();
+    if (newUUID) {
+      cbotGlobal.lastUUID = localUUID();
+    }
     jQuery.ajax({
-      url:"/apps/"+cbotGlobal.app+"/"+cbotGlobal.inst,
+      url: "/apps/" + cbotGlobal.app + "/" + cbotGlobal.inst,
       dataType: "json",
       data: {cmd: "current-pos",
              uuid: cbotGlobal.lastUUID,
-             timeout: "20000"},
-      success: handler1});  
+             timeout: "20000",
+             json: "true"},
+      success: handler1
+    });
   }
 }
 
 function showRobot(idx) {
   var i;
-  if (cbotGlobal.robot !== undefined) {
-    for (i=0; i<3; i+=1) {
+  if (cbotGlobal.robot !==  undefined) {
+    for (i = 0; i < 3; i += 1) {
       cbotGlobal.robot[i].attr({opacity: 0});
     }
-    if (idx>=0) {
-      cbotGlobal.robot[idx].animate({opacity: 1},500);
-    }  
-  }
-}
-
-function editStateConf() {
-  var state=null;
-  if (this.group!==undefined) {
-    state=cbotGlobal.states[this.group[0].key];
-  }
-  if (state) {
-    jQuery("#state-create").hide();
-    jQuery("#state-edit").show();
-    var stateConf=cbotGlobal.conf.states[state.conf_idx];
-    
-    jQuery("#state-key").html(stateConf["key"]);
-    jQuery("#state-x").html(stateConf["flow"]["x"]);
-    jQuery("#state-y").html(stateConf["flow"]["y"]);
-    var ttt=jQuery("#state-connect");
-    ttt.html(stateConf["flow"]["connect"]+"");
-    //jQuery("#state-connect").html(stateConf["flow"]["connect"]);
+    if (idx >= 0) {
+      cbotGlobal.robot[idx].animate({opacity: 1}, 500);
+    }
   }
 }
 
 function handler1(result) {
-  if (cbotGlobal.lastUUID===result["request-uuid"]) {
-    if (cbotGlobal.states.length===0) {
+  if (cbotGlobal.lastUUID === result["request-uuid"]) {
+    if (cbotGlobal.states.length === 0) {
       alert("there ara no states to monitor!");
       return;
     }
-    var newState=cbotGlobal.states[result.current];
-    if (newState===undefined) {
-      //alert("there is no state with name "+result.current+" !");
+    var newState = cbotGlobal.states[result.current];
+    if (newState === undefined) {
+      //alert("there is no state with name " + result.current + " !");
       startMonitoring(true);
       return;
     }
-    var thumbUp=$("#thumb-up");
-    var thumbDn=$("#thumb-down");
-    cbotGlobal.lastUUID=result.uuid;
+    var thumbUp = $("#thumb-up");
+    var thumbDn = $("#thumb-down");
+    cbotGlobal.lastUUID = result.uuid;
     thumbUp.hide();
-    thumbDn.hide();  
+    thumbDn.hide();
     if (result.status === ":bad") {
       thumbDn.show();
-    }
-    else {
+    } else {
       thumbUp.show();
     }
     jQuery("#resume").hide();
     jQuery("#stop-button").hide();
     jQuery("#start-button").hide();
 
-    if (cbotGlobal.lastState !== null) {  
-      cbotGlobal.lastState.r_t_i_set[0].animate({"fill": "#bbbbbb", 
+    if (cbotGlobal.lastState !==  null) {
+      cbotGlobal.lastState.r_t_i_set[0].animate({"fill": "#bbbbbb",
                                      "stroke-width": 3,
-                                     "stroke": "#007eaf", 
-                                     },1000);
+                                     "stroke": "#007eaf"
+                                     }, 1000);
     }
-    cbotGlobal.lastState=newState;
-    cbotGlobal.lastState.r_t_i_set[0].animate({fill: "#eeeeee", 
+    cbotGlobal.lastState = newState;
+    cbotGlobal.lastState.r_t_i_set[0].animate({fill: "#eeeeee",
                                    stroke: "#c42530",
-                                   "stroke-width": 3},1000);    
+                                   "stroke-width": 3}, 1000);
 
-    var resultIndex=0;
-    var x=jQuery("table.status").find("tr").each(function (i) {
-      if (i>0) {
+    var resultIndex = 0;
+    var x = jQuery("table.status").find("tr").each(function (i) {
+      if (i > 0) {
         $(this).find("td").each(function (j) {
-          if (resultIndex<result.stats.info.length) { 
+          if (resultIndex < result.stats.info.length) {
             $(this).text(result.stats.info[resultIndex][cbotGlobal.etiqueta[j]]);
-          }
-          else {
+          } else {
             $(this).text("");
-          }   
+          }
         });
-        resultIndex+=1;
+        resultIndex += 1;
       }
     });
     if (!result["stop?"]) {
@@ -885,285 +824,322 @@ function handler1(result) {
       if (result["awaiting?"]) {
         showRobot(2);
         jQuery("#resume").show();
-      }
-      else {
+      } else {
         showRobot(0);
       }
-    }
-    else {
+    } else {
       jQuery("#start-button").show();
       showRobot(1);
     }
-    var xx=parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.x,10);
-    var yy=parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.y,10);
-    cbotGlobal.robot.animate({x: xx+30,y: yy},500);
+    var xx = parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.x, 10);
+    var yy = parseInt(cbotGlobal.states[result.current].r_t_i_set[0].attrs.y, 10);
+    cbotGlobal.robot.animate({x: xx + 30, y: yy}, 500);
     startMonitoring(false);
   }
 }
 
-function getTimeoutOpr(div,state) {
-  var timeout=div.find("#timeout").val();
-  var rCount=div.find("#retry-count").val();
-  var rDelay=div.find("#retry-delay").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["timeout"]=timeout;
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-count"]=rCount;
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-delay"]=rDelay;
+function getTimeoutOpr(div, state) {
+  var timeout = div.find("#timeout").val();
+  var rCount = div.find("#retry-count").val();
+  var rDelay = div.find("#retry-delay").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].timeout = timeout;
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-count"] = rCount;
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"]["retry-delay"] = rDelay;
 }
 
-cbotGlobal.oprOKFunc={};
+cbotGlobal.oprOKFunc = {};
 
-cbotGlobal.oprOKFunc["sleep-opr"] = function () {
-  var div=$("#sleep-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var delta=div.find("#delta").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"delta":delta};
-}
+cbotGlobal.oprOKFunc["sleep-opr"]  =  function () {
+  var div = $("#sleep-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var delta = div.find("#delta").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"delta": delta};
+};
 
-cbotGlobal.oprOKFunc["socket-opr"] = function () {
-  var div=$("#socket-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  getTimeoutOpr(div,state);
-  var host=div.find("#host").val();
-  var port=div.find("#port").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"host":host,"port":port};
-}
+cbotGlobal.oprOKFunc["socket-opr"]  =  function () {
+  var div = $("#socket-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div, state);
+  var host = div.find("#host").val();
+  var port = div.find("#port").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"host": host, "port": port};
+};
 
-cbotGlobal.oprOKFunc["human-opr"] = function () {
-}
+cbotGlobal.oprOKFunc["human-opr"]  =  function () {
+};
 
-cbotGlobal.oprOKFunc["switch-good-opr"] = function () {
-}
-cbotGlobal.oprOKFunc["switch-bad-opr"] = function () {
-  var div=$("#switch-bad-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var minutes2wait=div.find("#minutes2wait").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"minutes2wait":minutes2wait};
-}
+cbotGlobal.oprOKFunc["switch-good-opr"]  =  function () {
+};
 
-cbotGlobal.oprOKFunc["log-opr"] = function () {
-  var div=$("#log-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var level=div.find("#log-levels option:selected").val();
-  var text=div.find("#text").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"level":level,"text":text};
-}
+cbotGlobal.oprOKFunc["switch-bad-opr"]  =  function () {
+  var div = $("#switch-bad-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var minutes2wait = div.find("#minutes2wait").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"minutes2wait": minutes2wait};
+};
 
-cbotGlobal.oprOKFunc["print-msg-opr"] = function () {
-  var div=$("#print-msg-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var msg=div.find("#msg").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"msg":msg};
-}
+cbotGlobal.oprOKFunc["log-opr"]  =  function () {
+  var div = $("#log-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var level = div.find("#log-levels option:selected").val();
+  var text = div.find("#text").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"level": level, "text": text};
+};
 
-cbotGlobal.oprOKFunc["print-context-opr"] = function () {
-  var div=$("#print-context-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var filter=div.find("#filter-re").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"filter-re":filter};
-}
+cbotGlobal.oprOKFunc["print-msg-opr"]  =  function () {
+  var div = $("#print-msg-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var msg = div.find("#msg").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"msg": msg};
+};
 
-cbotGlobal.oprOKFunc["get-http-opr"] = function () {
-  var div=$("#get-http-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  getTimeoutOpr(div,state);
-  var url=div.find("#url").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"url":url};
-}
+cbotGlobal.oprOKFunc["print-context-opr"]  =  function () {
+  var div = $("#print-context-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var filter = div.find("#filter-re").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"filter-re": filter};
+};
 
-cbotGlobal.oprOKFunc["post-http-opr"] = function () {
-  var div=$("#post-http-oprDialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  getTimeoutOpr(div,state);
-  var url=div.find("#url").val();
-  var params=div.find("#params").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"url":url, "params":params};
-}
+cbotGlobal.oprOKFunc["get-http-opr"]  =  function () {
+  var div = $("#get-http-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div, state);
+  var url = div.find("#url").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"url": url};
+};
 
-cbotGlobal.oprOKFunc["clojure-opr"] = function () {
-  var div=$("#clojure-oprDialog");
-  var kk=div.find("#state-name").val();
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var code=div.find("#code").val();
-  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf={"code":code};
-}
+cbotGlobal.oprOKFunc["post-http-opr"]  =  function () {
+  var div = $("#post-http-oprDialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  getTimeoutOpr(div, state);
+  var url = div.find("#url").val();
+  var params = div.find("#params").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"url": url, "params": params};
+};
+
+cbotGlobal.oprOKFunc["clojure-opr"]  =  function () {
+  var div = $("#clojure-oprDialog");
+  var kk = div.find("#state-name").val();
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var code = div.find("#code").val();
+  cbotGlobal.conf.states[state.conf_idx]["conf-map"].conf = {"code": code};
+};
 
 function removeState(opr) {
-  var div=$("#"+opr+"Dialog");
-  var state=cbotGlobal.states[div.find("#state-name").val()];
-  var i,j;
-  var nstates=[];
+  var div = $("#" + opr + "Dialog");
+  var state = cbotGlobal.states[div.find("#state-name").val()];
+  var i, j;
+  var nstates = [];
   var connectVec;
   var cur;
-  for (i=0; i<cbotGlobal.conf.states.length; i++) {
-    cur=cbotGlobal.conf.states[i];
-    if (cur.key!==state.key) {
-      connectVec=[];
-      if (cur.flow.connect!==undefined) {
-        for (j=0; j<cur.flow.connect.length; j+=2) {
-          if (cur.flow.connect[j] !== state.key) {
+  for (i = 0; i < cbotGlobal.conf.states.length; i++) {
+    cur = cbotGlobal.conf.states[i];
+    if (cur.key !== state.key) {
+      connectVec = [];
+      if (cur.flow.connect !== undefined) {
+        for (j = 0; j < cur.flow.connect.length; j += 2) {
+          if (cur.flow.connect[j] !==  state.key) {
             connectVec.push(cur.flow.connect[j]);
-            if (j<cur.flow.connect.length-1) {
-              connectVec.push(cur.flow.connect[j+1]);
+            if (j < cur.flow.connect.length - 1) {
+              connectVec.push(cur.flow.connect[j + 1]);
             }
           }
         }
       }
-      cur.flow.connect=connectVec;
+      cur.flow.connect = connectVec;
       nstates.push(cbotGlobal.conf.states[i]);
     }
   }
-  cbotGlobal.conf.states=nstates;
+  cbotGlobal.conf.states = nstates;
   buildWorkspace(cbotGlobal.conf);
 }
 
 function getDialog4Opr(opr) {
-  var oprDiag=opr+"Dialog";
-  if (cbotGlobal.oprDiags[oprDiag]===undefined) {
-    cbotGlobal.oprDiags[oprDiag]=$("#"+oprDiag).dialog({
-          autoOpen:false,
-          modal:true,
-          buttons : {
-            "Ok":function() {
-              cbotGlobal.oprOKFunc[opr]();
-              $(this).dialog("close");
-            },
-            "Remove" : function() {
-              removeState(opr);
-              $(this).dialog("close");
-            },
-            "Cancel" : function() {
-              $(this).dialog("close");
-            }
-          }
-        });
+  var oprDiag = opr + "Dialog";
+  if (cbotGlobal.oprDiags[oprDiag] === undefined) {
+    cbotGlobal.oprDiags[oprDiag] = $("#" + oprDiag).dialog({
+      autoOpen: false,
+      modal: true,
+      buttons: {
+        "Ok": function() {
+          cbotGlobal.oprOKFunc[opr]();
+          $(this).dialog("close");
+        },
+        "Remove": function() {
+          removeState(opr);
+          $(this).dialog("close");
+        },
+        "Cancel": function() {
+          $(this).dialog("close");
+        }
+      }
+    });
   }
   return cbotGlobal.oprDiags[oprDiag];
 }
 
 ////////////////////////////////////////////////////////////
 
-function removeFromArr(arr,value) {
-  var tmp=[];
+function removeFromArr(arr, value) {
+  var tmp = [];
   var i;
-  for (i=0; i<arr.length; i++) {
-    if (value!==arr[i]) {
+  for (i = 0; i < arr.length; i++) {
+    if (value !== arr[i]) {
       tmp.push(arr[i]);
     }
   }
   return tmp;
 }
 
-jQuery(document).ready(function() {
-  cbotGlobal.workspace=Raphael("states","600","400");
-  jQuery("#start-button").click(function () {
-    if (cbotGlobal.app!==cbotGlobal.NV && cbotGlobal.inst!==cbotGlobal.NV) {
-      startInstance(cbotGlobal.inst);
+/*
+var testFactory = (function(nombre,edad) {
+//  var nombre=nmbr;
+//  var edad=ed;
+  return {
+    hola: function() {
+      alert(nombre+":"+edad);
+      edad+=1;
+    },
+    getEdad: function() {
+      return edad;
     }
-    else {
+  }
+});
+
+var test1=testFactory("pablito",33);
+var test2=testFactory("felipe",50);
+test1.rfc="gecf-601231";
+*/
+
+jQuery(document).ready(function() {
+  cbotGlobal.workspace = new Raphael("states", "600", "400");
+  jQuery("#start-button").click(function () {
+    if (cbotGlobal.app !== cbotGlobal.NV && cbotGlobal.inst !== cbotGlobal.NV) {
+      startInstance(cbotGlobal.inst);
+    } else {
       alert("first you must select application and instance !");
     }
   });
   jQuery("#stop-button").click(function () {
-    if (cbotGlobal.app!==cbotGlobal.NV && cbotGlobal.inst!==cbotGlobal.NV) {
+    if (cbotGlobal.app !== cbotGlobal.NV && cbotGlobal.inst !== cbotGlobal.NV) {
       stopInstance(cbotGlobal.inst);
-    } 
-    else {
+    } else {
       alert("first you must select application and instance !");
     }
   });
   jQuery("#resume-button").click(function () {
-    if (cbotGlobal.app!==cbotGlobal.NV && cbotGlobal.inst!==cbotGlobal.NV) {
+    if (cbotGlobal.app !== cbotGlobal.NV && cbotGlobal.inst !== cbotGlobal.NV) {
       resumeInstance(cbotGlobal.inst);
-    }
-    else {
+    } else {
       alert("first you must select application and instance !");
     }
   });
   jQuery("#add-state").click(function() {
-    if (cbotGlobal.app!==cbotGlobal.NV) {
-      var stateName=":"+jQuery("#state-name").val();
-      var stateOpr=jQuery("#operations option:selected").text();
-      var newState={flow: {x:500,y:300,connect:[]}, key:stateName,
-                    "conf-map":{opr: stateOpr, conf: []}};
-      buildState(cbotGlobal.conf.states.length,newState);
+    if (cbotGlobal.app !== cbotGlobal.NV) {
+      var stateName = ":" + jQuery("#state-name").val();
+      var stateOpr = jQuery("#operations option:selected").text();
+      var newState = {flow: {x: 500, y: 300, connect: []}, key: stateName,
+                    "conf-map": {opr: stateOpr, conf: []}};
+      buildState(cbotGlobal.conf.states.length, newState);
       cbotGlobal.conf.states.push(newState);
     }
   });
   jQuery("#save-states").click(function () {
-    if (cbotGlobal.app!==cbotGlobal.NV) {
+    if (cbotGlobal.app !== cbotGlobal.NV) {
       saveStates();
-    }
-    else {
+    } else {
       alert("first you must select application !");
     }
   });
+
   jQuery("#start-monitor-button").click(function () {
     setMonitoring(true);
     startMonitoring(true);
   });
+  
+  //jQuery("#start-monitor-button").click(test1.hola);
+
   jQuery("#stop-monitor-button").click(function () {
     setMonitoring(false);
     startMonitoring(true);
   });
-  cbotGlobal.arrowDialog=$("#arrowDialog").dialog({
-          autoOpen:false,
-          modal:true,
-          buttons : {
-            "Ok":function() {
-              var state=cbotGlobal.states[$("#arrowStateName").val()];
-              var other=cbotGlobal.states[$("#arrowOtherStateName").val()];
-              var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
-              var i=$("#arrowCnctIdx").val();
-              connectArr[i]=$("#regexp").val();
-              removeArrows(state,other.key);
-              reConnectStates(state,other.key);    
-              $(this).dialog("close");
-            },
-            "Remove":function() {
-              var state=cbotGlobal.states[$("#arrowStateName").val()];
-              var other=cbotGlobal.states[$("#arrowOtherStateName").val()];
-              var connectArr=cbotGlobal.conf.states[state.conf_idx].flow.connect;
-              var i=parseInt($("#arrowCnctIdx").val(),10)-1;
-              var nconnectArr=[];
-              var j;
-              for (j=0; j<connectArr.length; j+=2) {
-                if (i!==j) {
-                  nconnectArr.push(connectArr[j]);
-                  if (j<connectArr.length-1 && i!==connectArr.length-1) {
-                    nconnectArr.push(connectArr[j+1]);
-                  }
-                }
-              }
-              removeArrows(state,other.key);
-              state.statesOut=removeFromArr(state.statesOut,other.key);
-              other.statesIn=removeFromArr(other.statesIn,state.key);
-              cbotGlobal.conf.states[state.conf_idx].flow.connect=nconnectArr;
-              $(this).dialog("close");
-            },
-            "Cancel" : function() {
-              $(this).dialog("close");
+  cbotGlobal.arrowDialog = $("#arrowDialog").dialog({
+    autoOpen: false,
+    modal: true,
+    buttons : {
+      "Ok": function() {
+        var state = cbotGlobal.states[$("#arrowStateName").val()];
+        var other = cbotGlobal.states[$("#arrowOtherStateName").val()];
+        var connectArr = cbotGlobal.conf.states[state.conf_idx].flow.connect;
+        var i = $("#arrowCnctIdx").val();
+        connectArr[i] = $("#regexp").val();
+        removeArrows(state, other.key);
+        reConnectStates(state, other.key);
+        $(this).dialog("close");
+      },
+      "Remove": function() {
+        var state = cbotGlobal.states[$("#arrowStateName").val()];
+        var other = cbotGlobal.states[$("#arrowOtherStateName").val()];
+        var connectArr = cbotGlobal.conf.states[state.conf_idx].flow.connect;
+        var i = parseInt($("#arrowCnctIdx").val(), 10) - 1;
+        var nconnectArr = [];
+        var j;
+        for (j = 0; j < connectArr.length; j += 2) {
+          if (i !== j) {
+            nconnectArr.push(connectArr[j]);
+            if (j < connectArr.length - 1 && i !== connectArr.length - 1) {
+              nconnectArr.push(connectArr[j + 1]);
             }
           }
-        });
+        }
+        removeArrows(state, other.key);
+        state.statesOut = removeFromArr(state.statesOut, other.key);
+        other.statesIn = removeFromArr(other.statesIn, state.key);
+        cbotGlobal.conf.states[state.conf_idx].flow.connect = nconnectArr;
+        $(this).dialog("close");
+      },
+      "Cancel": function() {
+        $(this).dialog("close");
+      }
+    }
+  });
   jQuery("#add-http-post-param").click(function() {
-    var uuid=localUUID();
-    jQuery("#http-post-params").append('<tr><td><input type="button" id='+uuid+' class="button" value="Del"/></td><td><input type=\"text\"/></td><td><input type=\"text\"/></td></tr>');
-    jQuery("#"+uuid).click(function () {
-      var tr=$("#"+uuid).parent().parent().remove();
+    var uuid = localUUID();
+    jQuery("#http-post-params").append('<tr><td><input type = "button" id = ' + uuid + ' class = "button" value = "Del"/></td><td><input type = \"text\"/></td><td><input type = \"text\"/></td></tr>');
+    jQuery("#" + uuid).click(function () {
+      var tr = $("#" + uuid).parent().parent().remove();
     });
-  })
+  });
   jQuery.ajax({
     url: "/operations",
     dataType: "json",
     success: fillOperations
   });
 
-  var apps=jQuery("#applications");
-  apps.empty();   
+  var apps = jQuery("#applications");
+  apps.empty();
   jQuery.ajax({
     url: "/apps",
     dataType: "json",
-    success: fillApplications});
+    success: fillApplications
+  });
 });
 
-
+/*
+var mo=(function() {
+  var nombre="felipe";
+  var paterno="gerard"
+  var edad=50;
+  return {
+    cumple: function() {
+      edad+=1;
+    },
+    getEdad: function() { 
+      return edad;
+    },
+    getNombre: function() {
+      return nombre+","+paterno;
+    }
+  }
+}());
+*/
