@@ -10,6 +10,7 @@
 <script src="/js/jquery-ui-1.8.16.custom.min.js"></script>
 <script src="/js/raphael.js" type="text/javascript"></script>
 <script src="/js/cbot2.js" type="text/javascript"></script>
+<script src="/js/application.js" type="text/javascript"></script>
 </head>
 <body>
 <!-- Header -->
@@ -17,25 +18,24 @@
   <div class="shell">
     <!-- Logo + Top Nav -->
     <div id="top">
-    <img src="images/logo-e-Robot.png" width="124" height="39" alt="e-robot"></div>
+    <img src="images/logo-e-Robot.png" width="100" height="25" alt="e-robot"></div>
     <!-- End Logo + Top Nav -->
   </div>
 </div>
 <!-- End Header -->
 <!-- Container -->
 <div id="container">
-  <div class="shell">
+  <div id="robot-screen" class="shell" style="display:true;">
     <!-- Main -->
     <div id="main">
-      <div class="cl">&nbsp;</div>
       <!-- Content -->
       <div id="content">
         <!-- Box -->
-        <div class="box">
+        <div class="box" id="state-diagram-box">
           <!-- Box Head -->
           <div class="box-head">
             <h2 class="left">State diagram</h2>
-            <div id="thump" class="right" style="position:relative; display:inher"> 
+            <div id="thump" class="right" style="position:relative; display:inherit"> 
               <img src="images/thumb-up.png"  id="thumb-up" style="position:relative; display:inherit; padding-top:5px" />
               <img src="images/thumb.png"  id="thumb-down" style="position:relative; display:none; padding-top:5px"/>
             </div>
@@ -54,7 +54,7 @@
         </div>
         <!-- End Box -->
         <!-- Box -->
-        <div class="box">
+        <div class="box" id="status-box">
           <!-- Box Head -->
           <div class="box-head">
             <h2>Status</h2>
@@ -144,7 +144,7 @@
       <!-- Sidebar -->
       <div id="sidebar">
         <!-- Box -->
-        <div class="box">
+        <div class="box" id="control-center-box">
           <!-- Box Head -->
           <div class="box-head">
             <h2>Control center</h2>
@@ -153,7 +153,7 @@
           <div class="box-content"> 
           	<!-- Sort -->
             <div class="swich"> 
-              <h4><a href="/application.html">Applications</a></h4>
+              <h4><a href="#" id="app-link">Applications</a></h4>
               <select class="field" id="applications">
                 <option value="" id="application">Application1</option>
                 <option value="" id="application">Application2</option>
@@ -182,31 +182,107 @@
           </div>
         </div>
         <!-- End Box -->
-      </div>
-      <!-- End Sidebar -->
-<!-- Sidebar -->
-      <div id="sidebar">
-        
         <div class="box">
-          
           <div class="box-head">
             <h2>State capture</h2>
           </div>
-          
           <div id="state-create" class="box-content" style="display:inherit">
             <select class="field" id="operations"></select>
             <div class="cl">&nbsp;</div>
             <input class="field" id="state-name"  type="text">
             <div class="cl">&nbsp;</div>
-            <table><tr><td> 
-            <input id="add-state" name="add-state"  type="button" value="Add"/>
-            </td><td>
-            
-            <input id="save-states" name="save-states" type="button"  value="Save"/>
-            </td>
-            </tr></table>
+            <table>
+              <tr>
+                <td> 
+                  <input id="add-state" name="add-state"  type="button" value="Add"/>
+                </td>
+                <td>
+                  <input id="save-states" name="save-states" type="button"  value="Save"/>
+                </td>
+              </tr>
+            </table>
             <div class="cl">&nbsp;</div>
           </div>
+        </div>
+      </div>
+      <!-- End Sidebar -->
+    </div>
+    <!-- Main -->
+  </div>
+
+  <div id="app-screen" class="shell" style="display:none;">
+    <!-- Main -->
+    <div id="main">
+      <!-- Content -->
+      <div id="content-app">
+        <!-- Box -->
+        <div class="box" id="applications-box">
+          <!-- Box Head -->
+          <div class="box-head">
+            <h2 class="left">Applications</h2>
+            <div class="right">
+            </div>
+          </div>
+          <!-- End Box Head -->
+          <div>
+<form id="appForm">
+  <table>
+    <tr><td><h4>Applications</h4></td><td>
+      <select class="field" id="applications">
+        <option value="" id="application">Application1</option>
+        <option value="" id="application">Application2</option>
+      </select>
+    </td></tr>
+    <tr><td>Name</td><td><input id="app-name" type="text"
+    value=""/></td><td rowspan="3"><input type="button" id="create-app"
+    class="button"  value="Save"/></td></tr>
+    <tr><td>Interstate-delay</td><td><input id="interstate-delay" type="text" value=""/></td></tr>
+    <tr><td>Stats-cache-len</td><td><input id="stats-cache-len" type="text" value=""/></td></tr>
+  </table>
+  <table id="parameters" border="1" cellspacing="5" width="400pt">
+    <tr><th width="10%"></th><th width="20%">Name</th><th width="70%">Value of parameter</th></tr>
+  </table>
+  <input type="button" id="add-p-btn" class="button" value="Add parameter"/><br/><br/>
+  <table id="instances" border="1" cellspacing="5" width="800pt">
+    <tr><th width="10%"></th><th width="20%">Instance</th><th width="70%">Parameters</th></tr>
+  </table>
+  <input type="button" id="add-i-btn" class="button" value="Add instance"/>
+</form>
+<a href="#" id="main-link">return to main</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cl">&nbsp;</div>
+<!-- End Container -->
+<!-- Footer -->
+<div id="footer">
+  <div class="shell"> <span class="left">© 2011 InterWare de México S.A. de C.V. / e-Robot</span> <span class="right"> Design by <a href="http://www.interware.com.mx">interware.com.mx</a> </span> </div>
+</div>
+<!-- End Footer -->
+
+<!--div id="arrowDialog" rel="arrowForm"/-->
+
+<!-- content -->
+
+<!--
+$('#sdHc3').simpleDialog({
+  showCloseLabel: false,
+  open: function () {
+    $('#checkboxStatus').html('');
+  },
+  close: function () {
+    var c = [];
+    $('#checkboxForm :checkbox:checked').each(function () {
+      c.push($(this).val());
+    });
+    $('#checkboxStatus').html('Checked ' + c.join(', ') + '.').show();
+  }
+});
+-->
+
 <div style="display:none;" id="arrowDialog">
   <h3>Rule</h3>
   <form id="regexpForm">
@@ -262,6 +338,13 @@
     <intput type="hidden" id="state-name" value=""/>
   </form>
 </div>
+<div style="display:none;" id="date-time-oprDialog">
+  <h3>Date-time operation</h3>
+  <form>
+    Format ej:HH:mm:ss <input id="format" type="text" value="HH:mm:ss"/>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
 <div style="display:none;" id="log-oprDialog">
   <h3>Log operation</h3>
   <form>
@@ -302,6 +385,15 @@
     <intput type="hidden" id="state-name" value=""/>
   </form>
 </div>
+<div style="display:none;" id="js-oprDialog">
+  <h3>Javascript operation</h3>
+  <form>
+    <table>
+    <tr><td>Code</td><td><textarea id="code" rows="20" cols="80"></textarea></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
+</div>
 <div style="display:none;" id="get-http-oprDialog">
   <h3>GET http operation</h3>
   <form>
@@ -332,46 +424,31 @@
     <intput type="hidden" id="state-name" value=""/>
   </form>
 </div>
-
-
-
-        </div>
-        
-        </div>
-        
-
-      </div>
-      <!-- End Sidebar -->
-      <div class="cl">&nbsp;</div>
-    </div>
-    <!-- Main -->
-  </div>
+<div style="display:none;" id="send-mail-oprDialog">
+  <h3>Send mail operation</h3>
+  <form>
+    <table>
+    <tr><td>Host</td><td><input id="host" type="text" size="30"
+    value="smtp.gmail.com"/></td></tr>
+    <tr><td>Port</td><td><input id="port" type="text" size="5"
+    value="993"/></td></tr>
+    <tr><td>SSL</td><td><input id="ssl" type="checkbox"/></td></tr>
+    <tr><td>User</td><td><input id="user" type="text" size="30"
+    value=""/></td></tr>
+    <tr><td>Password</td><td><input id="password" type="password" size="30"
+    value=""/></td></tr>
+    <tr><td>To</td><td><textarea id="to-vec" cols="50"
+    rows="5"></textarea></td></tr>
+    <tr><td>Subject</td><td><input id="subject" type="text" size="80"
+    value=""/></td></tr>
+    <tr><td>To</td><td><textarea id="text-vec" cols="50" rows="5"></textarea></td></tr>
+    <tr><td>Timeout</td><td><input id="timeout" type="text" value=""/></td></tr>
+    <tr><td>Retry count</td><td><input id="retry-count" type="text" value=""/></td></tr>
+    <tr><td>Retry delay</td><td><input id="retry-delay" type="text" value=""/></td></tr>
+    </table>
+    <intput type="hidden" id="state-name" value=""/>
+  </form>
 </div>
-<!-- End Container -->
-<!-- Footer -->
-<div id="footer">
-  <div class="shell"> <span class="left">© 2011 InterWare de México S.A. de C.V. / e-Robot</span> <span class="right"> Design by <a href="http://www.interware.com.mx">interware.com.mx</a> </span> </div>
-</div>
-<!-- End Footer -->
 
-<!--div id="arrowDialog" rel="arrowForm"/-->
-
-<!-- content -->
-
-<!--
-$('#sdHc3').simpleDialog({
-  showCloseLabel: false,
-  open: function () {
-    $('#checkboxStatus').html('');
-  },
-  close: function () {
-    var c = [];
-    $('#checkboxForm :checkbox:checked').each(function () {
-      c.push($(this).val());
-    });
-    $('#checkboxStatus').html('Checked ' + c.join(', ') + '.').show();
-  }
-});
--->
 </body>
 </html>

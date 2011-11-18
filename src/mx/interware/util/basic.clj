@@ -39,14 +39,16 @@
   `(try-times* ~n ~delay (fn [] ~@body)))
 
 (defn mail-it [mail]
+  (try
+    (log/debug "mail-it:  " mail)
   (let [props (java.util.Properties.)]
     (doto props
       (.put "mail.smtp.host" (:host mail))
-      (.put "mail.smtp.port" (:port mail))
-      (.put "mail.smtp.socketFactory.port"  (:port mail))
+      (.put "mail.smtp.port" (str (:port mail)))
+      (.put "mail.smtp.socketFactory.port"  (str (:port mail)))
       (.put "mail.smtp.auth" "true"))
 
-    (if (= (:ssl mail) true)
+    (if (.equalsIgnoreCase (str (:ssl mail)) "true" )
       (doto props
         (.put "mail.smtp.socketFactory.class" 
               "javax.net.ssl.SSLSocketFactory")))
@@ -68,7 +70,12 @@
                         (javax.mail.internet.InternetAddress/parse to)))
       (.setSubject msg (:subject mail))
       (.setText msg (:text mail))
-      (javax.mail.Transport/send msg))))
+      (javax.mail.Transport/send msg)))
+    (catch Exception e
+      (.printStackTrace e))
+    (finally
+     (log/debug "Saliendo de mail-it")))
+  )
 
 (defn mail [& m]
   (mail-it (apply hash-map m)))

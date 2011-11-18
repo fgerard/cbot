@@ -30,11 +30,11 @@
   </appender>
 
   <logger name="mx.interware.util.basic" additivity="true">
-    <level value="error"/>
+    <level value="debug"/>
   </logger>
 
   <root>
-    <priority value="debug"/>
+    <priority value="info"/>
     <appender-ref ref="fileAppender"/>
     <appender-ref ref="consola"/>
     <!--appender-ref ref="mail"/-->

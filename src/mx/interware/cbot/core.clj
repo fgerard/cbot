@@ -401,6 +401,9 @@
 (defmethod opr-factory "clojure-opr" [opr-name timeout retry-count retry-delay conf]
   (opr/clojure-opr conf))
 
+(defmethod opr-factory "js-opr" [opr-name timeout retry-count retry-delay conf]
+  (opr/js-opr conf))
+
 (defmethod opr-factory "date-time-opr" [opr-name timeout retry-count retry-delay conf]
   (opr/date-time-opr conf))
 
@@ -416,7 +419,7 @@
                        retry-delay :retry-delay
                        conf :conf :as conf-map} :conf-map
                        {connect-vec :connect :as flow} :flow}]
-  (log/debug (str "state-id:"  state-id))
+  (log/debug (str "state-id:"  state-id " opr-name:" opr-name))
   ;(Thread/sleep 5000)
   (State. state-id (opr-factory opr-name timeout retry-count retry-delay conf) (flow-factory connect-vec)))
 

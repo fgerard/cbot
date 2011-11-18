@@ -6,6 +6,7 @@
              File FileWriter)
     (java.util.concurrent Future TimeUnit TimeoutException ExecutionException))
   (:require [clojure.java.io :as io]
+            [clojure.data.json :as json]
             [clojure.tools.logging :as log]
             [mx.interware.cbot.util :as util]
             [clojure.java.jdbc :as sql]
@@ -104,22 +105,24 @@
 (defn- complete-mail-params [{text :text-vec subject :subject to :to-vec passwd :passwd :as param} context]
   (assoc param
     ;text es un vector de keywords a sacar del contexto!
-    :text (apply str "" (map #(str (util/contextualize % context)) text))
-    :to (into [] (map #(str (util/contextualize % context)) to))
+    :text (apply str "" (map #(str (util/contextualize % context)) (into [] (.split text "[\n]+"))))
+    :to (into [] (map #(str (util/contextualize % context)) (into [] (.split to "[\n\t ,]+"))))
     :password passwd
     :subject (util/contextualize-text subject context)))
 
 ;; demo conf {:host "mail.interware.mx" :port "463" :ssl "true"
 ;;            :user "fgerard" :passwd "xdesde"
-;;            :to-vec ["agarcia@interware.com.mx"
+;;            :to-vec ["agarcia@interware.com.mx"  // OJO AHORA SOLO
+;;            ES UN STRING
 ;;                 "cibarra@interware.com.mx"]
 ;;            :subject "prueba"
-;;            :text-vec ["Saludos:" "Estado dos:" :dos]
+;;            :text-vec ["Saludos:" "Estado dos:" :dos] //OJO ES UN STRING!!!
 (defn send-mail-opr
   {:doc "Operación para mandar mail"
    :long-running false}
   [conf]
   (fn [context]
+    (log/debug "Executing send-mail-opr \n" conf "\n" context)
     (basic/mail-it (complete-mail-params conf context))
     (str "send-mail-opr@" (System/currentTimeMillis))))
 
@@ -181,18 +184,84 @@
         host port protocol email password
         (contextualize-subject-set (:subject-set conf) context)))))
 
-;;demo conf {:function (fn [context] (.....))}
+;;demo conf {:code (fn [context] (.....))}
 (defn clojure-opr
   [conf]
-  (fn [context]
-    (log/debug "Entrando a clojure-opr, " (class (:code conf)) " " (:code conf))
-    (let [func (load-string (:code conf))
-          result (func context)]
-      (if (map? result)
-        (if (:result result)
-            result
-            (str "keyword :result is missing in this map " result " clojure-opr is WRONG!"))
-        result))))
+  (let [code (:code conf)
+        func (load-string (if (nil? code) "(fn [ctx] \"undefined clojure code!\")" code))]
+    (fn [context]
+      (log/debug "Entrando a clojure-opr, code: " (:code conf))
+      (let [result (func context)]
+        (if (map? result)
+          (if (:result result)
+              result
+              (str "keyword :result is missing in this map " result " clojure-opr is WRONG!"))
+          result)))))
+
+(defn- to-js [context]
+  (let [result
+        (reduce
+         (fn [s [k v]]
+           (str s (if (> (.length s) 0) "," "") "\"" k "\": "  (if (map? v) v (str "\"" v "\"")))) ""
+         (into {}
+               (map
+                (fn [[k v]]
+                  (log/error "k" k "v" v)
+                  [(name k) (cond
+                              (keyword? v) (name v)
+                              (.startsWith v "{") (json/json-str (load-string v)) 
+                              :otherwise v)])
+                context)))]
+    (log/error "\n\n\n//////// " result)
+    result))
+
+;;demo conf {:code (function(context) {.....})}
+(defn js-opr
+  [conf]
+  (let [ctx (org.mozilla.javascript.Context/enter)
+        scope (.initStandardObjects ctx)
+        code (:code conf)
+        func (.compileFunction ctx scope (if (nil? code) "function(ctx) {return \"undefined javascript code!\";}" code) "src" 1 nil)]
+    (org.mozilla.javascript.Context/exit)
+    (fn [context]
+      (try
+        (let [ctx (org.mozilla.javascript.Context/enter)
+              context-str (json/json-str context)
+              jsonp (org.mozilla.javascript.json.JsonParser. ctx scope)
+              jscontext (.parseValue jsonp context-str)
+              jscontext-arr (to-array [jscontext])
+              result (.call func ctx scope scope jscontext-arr)]
+          (println (string? result) result)
+          (cond
+           (string? result) result
+           (= (class result) org.mozilla.javascript.NativeObject)
+           (let [cresult (into {} (map (fn [k] [(keyword k) (.get result k)]) (.keySet result)))]
+             (if (:result cresult)
+               cresult
+               (str "keyword :result is missing in this map " cresult " js-opr is WRONG!")))
+           :otherwise (str result)))
+        (finally (org.mozilla.javascript.Context/exit)))))) 
+
+(comment
+  (use 'clojure.data.json)
+  (def mm {:a 1 :b 2 :c 3})
+  (def mms (json-str mm))
+  (def ctx (org.mozilla.javascript.Context/enter))
+  (def scope (.initStandardObjects ctx))
+  (def jsonp (org.mozilla.javascript.json.JsonParser. ctx scope))
+  (def param (.parseValue jsonp mms))
+  (def params (to-array [param]))
+  (def f (.compileFunction ctx scope "function f(map) {return map.a+map.b+map.c;}" "src" 1 nil))
+  (println (.call f ctx scope scope params))
+  (def ctx (org.mozilla.javascript.Context/exit))
+  )
+
+(comment
+  (def script (.compileString ctx "1+2+3;" "" 1 nil))
+  (.exec script ctx scope)
+  (def f (.compileFunction ctx scope "function f(map) {return map;}" "src" 1 nil))
+  (.call f ctx scope scope params)
+  (def ctx (org.mozilla.javascript.Context/exit)))
 
 (defn switch-good-opr [conf]
   (fn [context]

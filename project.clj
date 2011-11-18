@@ -17,6 +17,7 @@
                  [com.h2database/h2 "[1.3.153,)"]
                  [serializable-fn "[1.1.0,)"]
                  [seesaw "[1.1.0,)"]
+                 [rhino "[1.5R4.1,)"]
                 ]
 
   :dev-dependencies [[swank-clojure "[1.3.1,)"]

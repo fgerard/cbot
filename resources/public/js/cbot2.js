@@ -20,7 +20,7 @@ Raphael.fn.arrow  =  function (x1, y1, x2, y2, size) {
   return [linePath, arrowPath];
 };
 
-var cbot = (function() {
+var cbot = (function () {
   var NV = "unknown";
   var lastUUID = NV;
   var app = NV;
@@ -57,7 +57,7 @@ var cbot = (function() {
     }
   };
 
-  var removeIt = function (elem) {
+  var removeIt = function(elem) {
     if (elem!==null) {
       elem.remove();
     }
@@ -600,6 +600,12 @@ var labelIt = function(x, y, txt, elem) {
       var minutes2wait = getWithDefault(confState, ["conf-map", "conf", "minutes2wait"], "5");
       div.find("#minutes2wait").val(minutes2wait);
     },
+    "date-time-opr": function(state, confState) {
+      var div = $("#date-time-oprDialog");
+      div.find("#state-name").val(state.key);
+      var format = getWithDefault(confState, ["conf-map", "conf", "format"], "5");
+      div.find("#format").val(format);
+    },
     "log-opr": function(state, confState) {
       var div = $("#log-oprDialog");
       div.find("#state-name").val(state.key);
@@ -630,8 +636,25 @@ var labelIt = function(x, y, txt, elem) {
       div.find("#url").val(getWithDefault(confState, ["conf-map", "conf", "url"], "http://"));
       div.find("#params").val(getWithDefault(confState, ["conf-map", "conf", "params"], "name = value\nname = value"));
     },
+    "send-mail-opr": function (state, confState) {
+      var div = $("#send-mail-oprDialog");
+      div.find("#state-name").val(state.key);
+      div.find("#host").val(getWithDefault(confState, ["conf-map", "conf", "host"], "smtp.gmail.com"));
+      div.find("#port").val(getWithDefault(confState, ["conf-map", "conf", "port"], "465"));
+      div.find("#ssl").attr("checked",getWithDefault(confState, ["conf-map", "conf", "ssl"], "true")==="true");
+      div.find("#user").val(getWithDefault(confState, ["conf-map", "conf", "user"], ""));
+      div.find("#password").val(getWithDefault(confState, ["conf-map", "conf", "passwd"], ""));
+      div.find("#to-vec").val(getWithDefault(confState, ["conf-map", "conf", "to-vec"], "smtp.gmail.com"));
+      div.find("#subject").val(getWithDefault(confState, ["conf-map", "conf", "subject"], ""));
+      div.find("#text-vec").val(getWithDefault(confState, ["conf-map", "conf", "text-vec"], ""));
+    },
     "clojure-opr": function (state, confState) {
       var div = $("#clojure-oprDialog");
+      div.find("#state-name").val(state.key);
+      div.find("#code").val(getWithDefault(confState, ["conf-map", "conf", "code"], ""));
+    },
+    "js-opr": function (state, confState) {
+      var div = $("#js-oprDialog");
       div.find("#state-name").val(state.key);
       div.find("#code").val(getWithDefault(confState, ["conf-map", "conf", "code"], ""));
     }
@@ -700,6 +723,12 @@ var labelIt = function(x, y, txt, elem) {
       var minutes2wait = div.find("#minutes2wait").val();
       conf.states[state.conf_idx]["conf-map"].conf = {"minutes2wait": minutes2wait};
     },
+    "date-time-opr": function () {
+      var div = $("#date-time-oprDialog");
+      var state = states[div.find("#state-name").val()];
+      var format = div.find("#format").val();
+      conf.states[state.conf_idx]["conf-map"].conf = {"format": format};
+    },
     "log-opr": function () {
       var div = $("#log-oprDialog");
       var state = states[div.find("#state-name").val()];
@@ -734,8 +763,38 @@ var labelIt = function(x, y, txt, elem) {
       var params = div.find("#params").val();
       conf.states[state.conf_idx]["conf-map"].conf = {"url": url, "params": params};
     },
+    "send-mail-opr": function () {
+      var div = $("#send-mail-oprDialog");
+      var state = states[div.find("#state-name").val()];
+      getTimeoutOpr(div, state);
+      var host = div.find("#host").val();
+      var port = div.find("#port").val();
+      var tmp=$(div.find("#ssl")).is(":checked");
+      var ssl = tmp;
+      var user = div.find("#user").val();
+      var password = div.find("#password").val();
+      var tovec = div.find("#to-vec").val();
+      var subject = div.find("#subject").val();
+      var textvec = div.find("#text-vec").val();
+      conf.states[state.conf_idx]["conf-map"].conf = {
+        "host": host, 
+        "port": port,
+        "ssl": ssl,
+        "user": user,
+        "passwd": password,
+        "to-vec": tovec,
+        "subject": subject,
+        "text-vec": textvec
+      };
+    },
     "clojure-opr": function () {
       var div = $("#clojure-oprDialog");
+      var state = states[div.find("#state-name").val()];
+      var code = div.find("#code").val();
+      conf.states[state.conf_idx]["conf-map"].conf = {"code": code};
+    },
+    "js-opr": function () {
+      var div = $("#js-oprDialog");
       var state = states[div.find("#state-name").val()];
       var code = div.find("#code").val();
       conf.states[state.conf_idx]["conf-map"].conf = {"code": code};
@@ -804,7 +863,7 @@ var labelIt = function(x, y, txt, elem) {
   var removeFromArr = function(arr, value) {
     var tmp = [];
     var i;
-    for (i = 0; i < arr.length; i++) {
+    for (i === 0; i < arr.length; i++) {
       if (value !== arr[i]) {
         tmp.push(arr[i]);
       }
@@ -818,13 +877,23 @@ var labelIt = function(x, y, txt, elem) {
     startMonitoring(true);
   };
 
+  var setMonitor = function(monitorVal) {
+    monitoring = monitorVal;
+    if (!monitoring) {
+      showRobot(HIDE_ROBOT);
+    }
+  };
+
+
  var fillInstances = function(instances) {
     inst = fillSelect(instances, "#instances");
     jQuery("#instances").change(instanceChange);
+    setMonitor(true);
+    instanceChange();
   };
 
   var applicationChange = function() {
-    showRobot(HIDE_ROBOT);
+    setMonitor(false);
     app = jQuery("#applications option:selected").text();
     inst = NV;
     jQuery.ajax({
@@ -839,13 +908,6 @@ var labelIt = function(x, y, txt, elem) {
     });
   };
 
-  var setMonitor = function(monitorVal) {
-    monitoring = monitorVal;
-    if (!monitoring) {
-      showRobot(HIDE_ROBOT);
-    }
-  };
-
   return {
     fillApplications: function(apps) {
       if (apps.length > 0) {
@@ -854,7 +916,7 @@ var labelIt = function(x, y, txt, elem) {
         jQuery.ajax({
           url: "/apps/" + app,
           dataType: "json",
-          success: this.fillInstances
+          success: fillInstances
         });
         inst=NV; 
         jQuery.ajax({
@@ -980,7 +1042,11 @@ var labelIt = function(x, y, txt, elem) {
           }
         }
       });
-    } 
+    },
+    applicationsScreen: function() {
+      jQuery("#robot-screen").hide();
+      jQuery("#app-screen").show();
+    }
   };
 }());
 
@@ -1015,6 +1081,8 @@ jQuery(document).ready(function() {
     dataType: "json",
     success: cbot.fillOperations
   });
+  
+  jQuery("#app-link").click(cbot.applicationsScreen);
 
   var apps = jQuery("#applications");
   apps.empty();

@@ -55,5 +55,6 @@
 (defn report-log []
   (comment
     (html5 [:table
-          (map (fn [l] [:tr [:td l]]) @debug-agent)])))
+            (map (fn [l] [:tr [:td l]]) @debug-agent)])))
+
 

@@ -389,6 +389,7 @@
                  "get-http-opr"
                  "get-mail-opr"
                  "human-opr"
+                 "js-opr"
                  "log-opr"
                  "no-opr"
                  "post-http-opr"
@@ -510,13 +511,13 @@
      :retry-count (.getText retry-count)
      :retry-delay (.getText retry-delay)
      :conf {:host (.getText host)
-                                :port (.getText port)
-                                :ssl (.isSelected ssl)
-                                :user (.getText user)
-                                :passwd (.getText passwd)
-                                :to-vec (into [] (.split (.getText to-vec) "[\n\t ,]+"))
-                                :subject (.getText subject)
-                                :text-vec (into [] (.split (.getText text-vec) "[\n]+"))}}))
+            :port (.getText port)
+            :ssl (.isSelected ssl)
+            :user (.getText user)
+            :passwd (.getText passwd)
+            :to-vec (into [] (.split (.getText to-vec) "[\n\t ,]+"))
+            :subject (.getText subject)
+            :text-vec (into [] (.split (.getText text-vec) "[\n]+"))}}))
 
 (defmethod get-from-ui "sleep-opr" [operation-name]
   (let [diag ((keyword operation-name) opr-panels)]
